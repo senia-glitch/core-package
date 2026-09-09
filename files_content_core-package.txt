@@ -1,0 +1,3733 @@
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\.core-package.env.example
+Содержимое:
+# ============================================================
+# Конфигурация core-package
+# ============================================================
+
+# --- Безопасность ---
+# Секрет для JWT (обязательно измените в production!)
+CORE_JWT_SECRET=change-me-in-production
+
+# Время жизни access-токена (минуты)
+CORE_ACCESS_TOKEN_MINUTES=15
+
+# Время жизни refresh-токена (дни)
+CORE_REFRESH_TOKEN_DAYS=30
+
+# Количество раундов bcrypt (от 4 до 31, рекомендуем 12)
+CORE_BCRYPT_ROUNDS=12
+
+# --- Логирование и метрики ---
+# Включить сбор метрик (true/false)
+CORE_METRICS_ENABLED=true
+
+# Уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+CORE_LOG_LEVEL=INFO
+
+# Путь к файлу лога (если не указан, вывод в stdout)
+# CORE_LOG_FILE=./logs/core.log
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\.coverage
+Содержимое:
+[Файл содержит бинарные данные или неизвестную кодировку]
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\LICENSE
+Содержимое:
+MIT License
+
+Copyright (c) 2026
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\pyproject.toml
+Содержимое:
+# pyproject.toml
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "core-package"
+version = "0.1.0"
+description = "Платформа для построения бизнес-сценариев с абстракциями и утилитами"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your@email.com"}
+]
+dependencies = [
+    "pydantic>=2.0",
+    "python-dotenv>=1.0",
+    "pyjwt>=2.0",
+    "bcrypt>=4.0",
+]
+
+[project.scripts]
+core-init = "core.cli:init"
+
+[project.entry-points."core.scenarios"]
+# Здесь проекты могут регистрировать свои сценарии
+
+[tool.setuptools.package-data]
+core = ["templates/*", "templates/structure_template/*", "templates/structure_template/**/*"]
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\README.md
+Содержимое:
+# core-package
+
+Платформа для построения бизнес-сценариев с абстракциями и утилитами.
+
+## Назначение
+
+Пакет предоставляет:
+
+- Интерфейсы для внешних зависимостей (БД, кеш, логирование, метрики)
+- Базовый класс для сценариев и реестр сценариев
+- Утилиты: безопасность (bcrypt, JWT), работа с датами, валидаторы
+- Встроенные логгер и метрики в памяти
+- CLI-команду `core-init` для быстрой инициализации проекта
+
+## Возможности
+
+- **Гексагональная архитектура** – чёткое разделение интерфейсов и реализаций.
+- **Автоматический сбор метрик** – декораторы `@track_metrics` и `@tracked_scenario`.
+- **Потокобезопасный in-memory кэш** с TTL и ограничением размера.
+- **Расширяемая система ошибок** – базовый `CoreError` с HTTP-статусами и кодами.
+- **Гибкая конфигурация** – загрузка из `.core-package.env`, поиск вверх по дереву каталогов, поддержка `CORE_ENV_PATH`.
+- **Автодискаверинг сценариев** через entry point `core.scenarios`.
+
+## Быстрый старт
+
+1. Установите пакет:
+
+   ```bash
+   pip install git+https://github.com/ваш-username/core-package.git
+Инициализируйте проект:
+
+bash
+core-init
+Будут созданы:
+
+.core-package.env – файл с переменными окружения
+
+scenarios/, interfaces/, utils/ – папки для вашего кода
+
+examples/ – примеры использования
+
+pyproject.toml – базовый файл проекта (если отсутствует)
+
+README.md – описание проекта (если отсутствует)
+
+Создайте сценарий, унаследовав BaseScenario, и зарегистрируйте его.
+
+Запустите пример:
+
+bash
+python examples/main_example.py
+Архитектура
+Пакет построен по принципам гексагональной архитектуры:
+
+Интерфейсы (core.interfaces) – абстракции для БД, кеша, логгера и метрик.
+
+Базовый сценарий (BaseScenario) – основа для всех бизнес-сценариев.
+
+Реестр сценариев (ScenarioRegistry) – регистрация и получение сценариев по имени.
+
+Утилиты (core.utils) – чистые функции: безопасность, даты, валидация.
+
+Компоненты
+Интерфейсы
+IDatabase – асинхронные CRUD-операции и произвольные SQL-запросы.
+
+ICache – асинхронное кеширование (get, set, delete, clear).
+
+ILogger – асинхронное логирование (debug, info, warning, error, critical).
+
+IMetrics – асинхронный сбор метрик (record, increment).
+
+Все интерфейсы определены через Protocol и не зависят от конкретных реализаций.
+
+BaseScenario
+Базовый класс для сценариев:
+
+python
+from core import BaseScenario
+
+class MyScenario(BaseScenario):
+    async def execute(self, dto):
+        # логика сценария
+        pass
+Конструктор принимает:
+
+db – обязательный экземпляр IDatabase
+
+cache – опционально ICache
+
+logger – опционально ILogger
+
+metrics – опционально IMetrics
+
+Для автоматического сбора метрик используйте декораторы.
+
+ScenarioRegistry
+Реестр сценариев:
+
+python
+ScenarioRegistry.register("my_scenario", MyScenario)
+scenario = ScenarioRegistry.get("my_scenario", deps)
+Автодискаверинг через entry point core.scenarios:
+
+toml
+# pyproject.toml
+[project.entry-points."core.scenarios"]
+my_scenario = "my_project.scenarios:MyScenario"
+После импорта core реестр автоматически загрузит все зарегистрированные сценарии.
+
+Исключения
+Иерархия исключений:
+
+CoreError – базовое исключение с опциональными атрибутами code и http_status.
+
+NotFoundError (HTTP 404)
+
+ValidationError (HTTP 422)
+
+ConflictError (HTTP 409)
+
+Пример:
+
+python
+from core import NotFoundError
+
+raise NotFoundError("User not found")
+DTO
+Базовый класс BaseDTO (Pydantic) с общими полями:
+
+access_token: Optional[str]
+
+limit: int = 100 (от 1 до 1000)
+
+offset: int = 0
+
+Утилиты
+Безопасность (core.utils.security)
+hash_password(password) -> str – bcrypt-хеширование.
+
+verify_password(password, hashed) -> bool
+
+create_access_token(user_id, role, secret, expires_in) -> str – JWT HS256.
+
+create_refresh_token(user_id, secret, expires_in) -> str
+
+decode_token(token, secret) -> dict
+
+extract_token_info(token, secret) -> TokenInfo – возвращает user_id и role.
+
+Работа с датами (core.utils.datetime_utils)
+parse_iso_datetime(value) -> datetime
+
+normalize_timezone(dt, offset_hours) -> datetime
+
+is_datetime_in_past(dt) -> bool
+
+format_iso(dt, with_timezone=False) -> str
+
+Валидаторы (core.utils.validators)
+validate_pagination(limit, offset)
+
+validate_required(value, field_name)
+
+validate_email(email)
+
+Встроенные реализации
+Логирование
+ConsoleLogger – реализация ILogger, пишет в stdout или файл.
+
+Уровень: CORE_LOG_LEVEL (по умолчанию INFO).
+
+Файл: если задан CORE_LOG_FILE, вывод пишется в файл.
+
+Обработчик добавляется один раз, чтобы избежать дублирования.
+
+Метрики
+InMemoryMetrics – хранит статистику в памяти.
+
+Доступ через get_metrics() (глобальный синглтон) или собственный экземпляр.
+
+Собирает: количество вызовов, ошибки, среднее/минимальное/максимальное время выполнения.
+
+Включение/отключение: CORE_METRICS_ENABLED (по умолчанию true).
+
+Декораторы:
+
+@track_metrics("scenario_name") – для методов.
+
+@tracked_scenario("scenario_name") – для классов (оборачивает execute).
+
+Пример:
+
+python
+from core import BaseScenario, tracked_scenario
+
+@tracked_scenario("my_scenario")
+class MyScenario(BaseScenario):
+    async def execute(self, dto):
+        return {"ok": True}
+Декоратор использует self._metrics, если они переданы в конструктор, иначе глобальный get_metrics().
+
+Кэш
+InMemoryCache – потокобезопасная реализация ICache с TTL и ограничением размера.
+
+python
+from core import InMemoryCache
+
+cache = InMemoryCache(ttl_seconds=60, max_size=1000)
+await cache.set("key", "value")
+value = await cache.get("key")
+CLI-команда core-init
+Команда инициализирует проект, создавая структуру и файлы.
+
+--force – перезаписывать существующие файлы.
+
+--target-dir – имя папки для кода (по умолчанию core_project).
+
+Создаваемые файлы:
+
+.core-package.env
+
+scenarios/, interfaces/, utils/ с __init__.py и README
+
+examples/example_scenario.py
+
+examples/event_infra_adapter.py
+
+examples/main_example.py
+
+pyproject.toml (если отсутствует)
+
+README.md (если отсутствует)
+
+Конфигурация
+Пакет загружает настройки из .core-package.env (поиск вверх по дереву каталогов) или из переменных окружения.
+
+Переменная	Описание	По умолчанию
+CORE_JWT_SECRET	Секрет для JWT	change-me-in-production
+CORE_ACCESS_TOKEN_MINUTES	Время жизни access-токена (мин)	15
+CORE_REFRESH_TOKEN_DAYS	Время жизни refresh-токена (дни)	30
+CORE_BCRYPT_ROUNDS	Раунды bcrypt	12
+CORE_METRICS_ENABLED	Включить метрики (true/false)	true
+CORE_LOG_LEVEL	Уровень логирования	INFO
+CORE_LOG_FILE	Путь к файлу лога (пусто – stdout)	(пусто)
+CORE_ENV_PATH	Явный путь к файлу .env	(пусто)
+Пример адаптера для event-infra
+python
+from core.interfaces import IDatabase
+
+class EventInfraDatabaseAdapter(IDatabase):
+    def __init__(self, router):
+        self._router = router
+
+    async def create(self, entity, data):
+        resp = await self._router.create(entity, data, channel="write")
+        if not resp.success:
+            raise Exception(resp.error.message)
+        return resp.data[0]
+
+    async def read(self, entity, id):
+        resp = await self._router.read(entity, id, channel="read")
+        if not resp.success:
+            raise Exception(resp.error.message)
+        return resp.data[0] if resp.data else None
+
+    async def update(self, entity, id, data):
+        resp = await self._router.update(entity, id, data, channel="write")
+        if not resp.success:
+            raise Exception(resp.error.message)
+        return resp.data[0]
+
+    async def delete(self, entity, id):
+        resp = await self._router.delete(entity, id, channel="write")
+        if not resp.success:
+            raise Exception(resp.error.message)
+        return resp.count > 0
+
+    async def custom(self, sql, params):
+        resp = await self._router.custom(sql, params, channel="read")
+        if not resp.success:
+            raise Exception(resp.error.message)
+        return [dict(row._mapping) for row in resp.data if row]
+Расширение
+Создайте класс, унаследовав BaseScenario.
+
+Реализуйте метод execute(dto) -> Response.
+
+Зарегистрируйте сценарий через entry point в pyproject.toml:
+
+toml
+[project.entry-points."core.scenarios"]
+my_scenario = "my_project.scenarios:MyScenario"
+Тестирование
+Пакет поставляется с набором тестов. Запуск:
+
+bash
+pytest tests/ -v
+Лицензия
+MIT
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\.pytest_cache\.gitignore
+Содержимое:
+# Created by pytest automatically.
+*
+
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\.pytest_cache\CACHEDIR.TAG
+Содержимое:
+Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by pytest.
+# For information about cache directory tags, see:
+#	https://bford.info/cachedir/spec.html
+
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\.pytest_cache\README.md
+Содержимое:
+# pytest cache directory #
+
+This directory contains data from the pytest's cache plugin,
+which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
+
+**Do not** commit this to version control.
+
+See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
+
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\.pytest_cache\v\cache\lastfailed
+Содержимое:
+{
+  "tests/test_logger.py::test_logger_custom_level": true,
+  "tests/test_registry.py::test_autodiscover": true
+}
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\.pytest_cache\v\cache\nodeids
+Содержимое:
+[
+  "tests/test_base_scenario.py::test_auto_metrics_decorated",
+  "tests/test_base_scenario.py::test_base_scenario_execute",
+  "tests/test_base_scenario.py::test_base_scenario_execute_not_implemented",
+  "tests/test_base_scenario.py::test_base_scenario_instantiation",
+  "tests/test_base_scenario.py::test_no_auto_metrics",
+  "tests/test_cache.py::test_cache_clear",
+  "tests/test_cache.py::test_cache_concurrent_access",
+  "tests/test_cache.py::test_cache_delete",
+  "tests/test_cache.py::test_cache_get_missing",
+  "tests/test_cache.py::test_cache_has_lock",
+  "tests/test_cache.py::test_cache_max_size",
+  "tests/test_cache.py::test_cache_set_and_get",
+  "tests/test_cache.py::test_cache_size_property",
+  "tests/test_cache.py::test_cache_ttl",
+  "tests/test_cache.py::test_cache_ttl_per_item",
+  "tests/test_cli.py::test_core_init_creates_files",
+  "tests/test_cli.py::test_core_init_does_not_overwrite_without_force",
+  "tests/test_cli.py::test_core_init_overwrites_with_force",
+  "tests/test_config.py::test_get_env_bool_default",
+  "tests/test_config.py::test_get_env_bool_values",
+  "tests/test_config.py::test_get_env_float_default",
+  "tests/test_config.py::test_get_env_float_with_env",
+  "tests/test_config.py::test_get_env_int_default",
+  "tests/test_config.py::test_get_env_int_with_env",
+  "tests/test_config.py::test_get_env_var_default",
+  "tests/test_config.py::test_get_env_var_with_env",
+  "tests/test_config.py::test_load_dotenv",
+  "tests/test_config.py::test_load_dotenv_explicit_path",
+  "tests/test_config.py::test_load_dotenv_explicit_path_nonexistent",
+  "tests/test_config.py::test_load_dotenv_from_cwd",
+  "tests/test_config.py::test_load_dotenv_from_parent",
+  "tests/test_config.py::test_no_env_file",
+  "tests/test_decorator.py::test_track_metrics_disabled",
+  "tests/test_decorator.py::test_track_metrics_error",
+  "tests/test_decorator.py::test_track_metrics_success",
+  "tests/test_decorator.py::test_track_metrics_uses_passed_metrics",
+  "tests/test_decorator_class.py::test_tracked_scenario_disabled",
+  "tests/test_decorator_class.py::test_tracked_scenario_records_errors",
+  "tests/test_decorator_class.py::test_tracked_scenario_records_metrics",
+  "tests/test_decorator_class.py::test_tracked_scenario_uses_passed_metrics",
+  "tests/test_decorator_class.py::test_tracked_scenario_works_without_metrics_disabled",
+  "tests/test_dto.py::test_base_dto_custom_values",
+  "tests/test_dto.py::test_base_dto_defaults",
+  "tests/test_dto.py::test_base_dto_validation",
+  "tests/test_exceptions.py::test_conflict_error_defaults",
+  "tests/test_exceptions.py::test_core_error_defaults",
+  "tests/test_exceptions.py::test_core_error_with_attributes",
+  "tests/test_exceptions.py::test_exceptions_inheritance",
+  "tests/test_exceptions.py::test_exceptions_instantiation",
+  "tests/test_exceptions.py::test_exceptions_instantiation_with_raise",
+  "tests/test_exceptions.py::test_not_found_error_defaults",
+  "tests/test_exceptions.py::test_not_found_error_with_code",
+  "tests/test_exceptions.py::test_validation_error_defaults",
+  "tests/test_integration.py::test_run_example_works",
+  "tests/test_interfaces.py::test_icache_protocol",
+  "tests/test_interfaces.py::test_idatabase_protocol",
+  "tests/test_interfaces.py::test_ilogger_protocol",
+  "tests/test_interfaces.py::test_imetrics_protocol",
+  "tests/test_interfaces.py::test_itransactional_database_protocol",
+  "tests/test_logger.py::test_console_logger_creation",
+  "tests/test_logger.py::test_console_logger_methods",
+  "tests/test_logger.py::test_console_logger_methods_set_level",
+  "tests/test_logger.py::test_file_handler",
+  "tests/test_logger.py::test_logger_custom_level",
+  "tests/test_logger.py::test_logger_custom_level_dynamic",
+  "tests/test_logger.py::test_no_duplicate_handlers",
+  "tests/test_metrics.py::test_get_metrics_singleton",
+  "tests/test_metrics.py::test_metrics_clear",
+  "tests/test_metrics.py::test_metrics_disabled",
+  "tests/test_metrics.py::test_metrics_increment_error",
+  "tests/test_metrics.py::test_metrics_increment_without_error",
+  "tests/test_metrics.py::test_metrics_record",
+  "tests/test_metrics.py::test_metrics_record_with_error",
+  "tests/test_registry.py::test_autodiscover",
+  "tests/test_registry.py::test_autodiscover_entry_point_error",
+  "tests/test_registry.py::test_autodiscover_general_error",
+  "tests/test_registry.py::test_autodiscover_old_python",
+  "tests/test_registry.py::test_autodiscover_success",
+  "tests/test_registry.py::test_get_not_registered",
+  "tests/test_registry.py::test_list_scenarios",
+  "tests/test_registry.py::test_register_and_get",
+  "tests/test_registry.py::test_register_duplicate",
+  "tests/test_utils.py::test_create_access_token_and_decode",
+  "tests/test_utils.py::test_create_refresh_token_and_decode",
+  "tests/test_utils.py::test_decode_token_invalid",
+  "tests/test_utils.py::test_extract_token_info",
+  "tests/test_utils.py::test_format_iso",
+  "tests/test_utils.py::test_is_datetime_in_past",
+  "tests/test_utils.py::test_is_datetime_in_past_without_now",
+  "tests/test_utils.py::test_normalize_timezone",
+  "tests/test_utils.py::test_normalize_timezone_with_aware_datetime",
+  "tests/test_utils.py::test_parse_iso_datetime",
+  "tests/test_utils.py::test_parse_iso_datetime_invalid",
+  "tests/test_utils.py::test_parse_iso_datetime_with_space",
+  "tests/test_utils.py::test_parse_iso_datetime_with_timezone",
+  "tests/test_utils.py::test_parse_iso_datetime_without_seconds",
+  "tests/test_utils.py::test_password_hashing",
+  "tests/test_utils.py::test_validate_email",
+  "tests/test_utils.py::test_validate_pagination",
+  "tests/test_utils.py::test_validate_required"
+]
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\base_scenario.py
+Содержимое:
+# src/core/base_scenario.py
+"""Базовый класс для всех бизнес-сценариев."""
+
+from typing import Any, Optional
+from .interfaces import IDatabase, ICache, ILogger, IMetrics
+
+
+class BaseScenario:
+    """Абстрактный базовый класс для сценариев.
+
+    Сценарий получает зависимости через конструктор и реализует метод execute.
+    Для сбора метрик используйте декоратор @track_metrics над методом execute
+    или @tracked_scenario над классом.
+    """
+
+    def __init__(
+        self,
+        db: IDatabase,
+        cache: Optional[ICache] = None,
+        logger: Optional[ILogger] = None,
+        metrics: Optional[IMetrics] = None,
+    ):
+        self._db = db
+        self._cache = cache
+        self._logger = logger
+        self._metrics = metrics
+
+    async def execute(self, dto: Any) -> Any:
+        raise NotImplementedError("Метод execute должен быть переопределён")
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\cache.py
+Содержимое:
+# src/core/cache.py
+"""In-memory реализация ICache с TTL, ограничением размера и потокобезопасностью."""
+
+import asyncio
+import time
+from typing import Any, Optional
+
+from .interfaces import ICache
+
+
+class InMemoryCache(ICache):
+    """Простой in-memory кеш с TTL, ограничением размера и защитой от гонок."""
+
+    def __init__(self, ttl_seconds: int = 60, max_size: int = 1000):
+        self._cache: dict[str, tuple[float, Any]] = {}
+        self._ttl = ttl_seconds
+        self._max_size = max_size
+        self._lock = asyncio.Lock()
+
+    async def get(self, key: str, **kwargs) -> Optional[Any]:
+        async with self._lock:
+            if key in self._cache:
+                expires_at, value = self._cache[key]
+                if time.monotonic() < expires_at:
+                    return value
+                del self._cache[key]
+        return None
+
+    async def set(self, key: str, value: Any, ttl: Optional[int] = None, **kwargs) -> None:
+        async with self._lock:
+            if len(self._cache) >= self._max_size:
+                oldest = min(self._cache, key=lambda k: self._cache[k][0])
+                del self._cache[oldest]
+            ttl_seconds = ttl if ttl is not None else self._ttl
+            expires_at = time.monotonic() + ttl_seconds
+            self._cache[key] = (expires_at, value)
+
+    async def delete(self, key: str, **kwargs) -> None:
+        async with self._lock:
+            self._cache.pop(key, None)
+
+    async def clear(self, **kwargs) -> None:
+        async with self._lock:
+            self._cache.clear()
+
+    @property
+    def size(self) -> int:
+        return len(self._cache)
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\cli.py
+Содержимое:
+# src/core/cli.py
+"""CLI-команды для core-package.
+
+Команда core-init инициализирует проект с шаблонами и примерами.
+"""
+
+import argparse
+from pathlib import Path
+from importlib import resources
+
+
+def _copy_template(template_name: str, dest: Path, force: bool = False) -> bool:
+    """Копирует шаблон из пакета в указанное место."""
+    if dest.exists() and not force:
+        print(f"Файл {dest} уже существует. Используйте --force для перезаписи.")
+        return False
+
+    try:
+        # Совместимо с Python 3.8+
+        content = resources.read_text("core", f"templates/{template_name}", encoding="utf-8")
+    except Exception as e:
+        # На случай, если ресурсы не найдены, пробуем через files (для более новых версий)
+        try:
+            content = resources.files("core").joinpath(f"templates/{template_name}").read_text(encoding="utf-8")
+        except Exception:
+            print(f"Ошибка чтения шаблона {template_name}: {e}")
+            return False
+
+    dest.write_text(content, encoding="utf-8")
+    print(f"Создан: {dest}")
+    return True
+
+
+def _ensure_dir(path: Path) -> None:
+    """Создаёт директорию, если её нет."""
+    if not path.exists():
+        path.mkdir(parents=True)
+        print(f"Создана папка: {path}")
+
+
+def init() -> None:
+    """Инициализация проекта: создаёт структуру папок и файлов."""
+    parser = argparse.ArgumentParser(description="Инициализация проекта с core-package")
+    parser.add_argument("--force", action="store_true", help="Перезаписать существующие файлы")
+    parser.add_argument(
+        "--target-dir",
+        default="core_project",
+        help="Папка, в которую будут помещены сгенерированные файлы (кроме .core-package.env). По умолчанию: core_project"
+    )
+    args = parser.parse_args()
+
+    cwd = Path.cwd()
+    force = args.force
+    target_path = cwd / args.target_dir
+
+    # 1. Конфигурационный файл (всегда в текущей папке)
+    _copy_template("env_template.txt", cwd / ".core-package.env", force)
+
+    # 2. Папки для пользовательского кода внутри target_path
+    for folder in ["scenarios", "interfaces", "utils"]:
+        folder_path = target_path / folder
+        _ensure_dir(folder_path)
+
+        init_file = folder_path / "__init__.py"
+        if not init_file.exists() or force:
+            init_file.write_text("# Автоматически создано core-init\n", encoding="utf-8")
+            print(f"Создан: {init_file}")
+
+        readme = folder_path / "README.md"
+        if not readme.exists() or force:
+            readme.write_text(f"# {folder.capitalize()}\n\nЗдесь находятся ваши {folder}.\n", encoding="utf-8")
+            print(f"Создан: {readme}")
+
+    # 3. Примеры внутри target_path
+    examples_dir = target_path / "examples"
+    _ensure_dir(examples_dir)
+
+    _copy_template("scenario_template.py", examples_dir / "example_scenario.py", force)
+    _copy_template("adapter_template.py", examples_dir / "event_infra_adapter.py", force)
+    _copy_template("main_template.py", examples_dir / "main_example.py", force)
+
+    # 4. pyproject.toml (в корне проекта)
+    pyproject = cwd / "pyproject.toml"
+    if not pyproject.exists() or force:
+        content = (
+            '[project]\n'
+            'name = "my-project"\n'
+            'version = "0.1.0"\n'
+            'description = "Мой проект на core-package"\n'
+            'requires-python = ">=3.8"\n'
+            'dependencies = [\n'
+            '    "core-package",\n'
+            ']\n'
+            '\n'
+            '[project.entry-points."core.scenarios"]\n'
+            '# Зарегистрируйте свои сценарии здесь, например:\n'
+            '# my_scenario = "my_project.scenarios:MyScenario"\n'
+        )
+        pyproject.write_text(content, encoding="utf-8")
+        print(f"Создан: {pyproject}")
+    else:
+        print(f"Файл {pyproject} уже существует, пропускаем (используйте --force для перезаписи).")
+
+    # 5. README проекта (в корне)
+    readme_project = cwd / "README.md"
+    if not readme_project.exists() or force:
+        content = (
+            '# Мой проект на core-package\n'
+            '\n'
+            '## Установка\n'
+            '\n'
+            '```bash\n'
+            'pip install -e .\n'
+            '```\n'
+            '\n'
+            '## Использование\n'
+            '\n'
+            f'Смотрите примеры в папке `{args.target_dir}/examples/`.\n'
+            'Запустите рабочий пример:\n'
+            '```bash\n'
+            f'python {args.target_dir}/examples/main_example.py\n'
+            '```\n'
+            '\n'
+            '## Разработка\n'
+            '\n'
+            f'Добавляйте свои сценарии в папку `{args.target_dir}/scenarios/`.\n'
+        )
+        readme_project.write_text(content, encoding="utf-8")
+        print(f"Создан: {readme_project}")
+    else:
+        print(f"Файл {readme_project} уже существует, пропускаем (используйте --force для перезаписи).")
+
+    print("\nИнициализация завершена. Теперь вы можете:")
+    print("  1. Отредактировать .core-package.env под свои нужды.")
+    print(f"  2. Изучить примеры в папке {args.target_dir}/examples/.")
+    print(f"  3. Запустить рабочий пример: python {args.target_dir}/examples/main_example.py")
+    print("  4. Начать разработку своих сценариев.")
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\config.py
+Содержимое:
+# src/core/config.py
+"""Загрузка конфигурации из переменных окружения.
+
+Поиск файла .core-package.env выполняется:
+1. По явному пути из переменной окружения CORE_ENV_PATH.
+2. В текущей директории и всех родительских (до корня файловой системы).
+Если файл не найден, используются только переменные окружения.
+"""
+
+import os
+from pathlib import Path
+from typing import Optional
+from dotenv import load_dotenv
+
+
+def _find_env_file() -> Optional[Path]:
+    """Ищет .core-package.env начиная с текущей директории вверх."""
+    explicit = os.getenv("CORE_ENV_PATH")
+    if explicit:
+        p = Path(explicit).expanduser().resolve()
+        return p if p.exists() else None
+
+    current = Path.cwd().resolve()
+    for parent in [current, *current.parents]:
+        candidate = parent / ".core-package.env"
+        if candidate.exists():
+            return candidate
+    return None
+
+
+env_file = _find_env_file()
+if env_file:
+    load_dotenv(env_file)
+
+
+def get_env_var(name: str, default: str = "") -> str:
+    """Возвращает значение переменной окружения или значение по умолчанию.
+
+    Args:
+        name: Имя переменной.
+        default: Значение по умолчанию.
+
+    Returns:
+        Значение переменной или default.
+    """
+    return os.getenv(name, default)
+
+
+def get_env_bool(name: str, default: bool = False) -> bool:
+    """Возвращает булево значение переменной окружения.
+
+    Принимает значения: true, 1, yes, on (регистронезависимо).
+
+    Args:
+        name: Имя переменной.
+        default: Значение по умолчанию.
+
+    Returns:
+        True или False.
+    """
+    val = os.getenv(name, "").lower()
+    if val in ("true", "1", "yes", "on"):
+        return True
+    elif val in ("false", "0", "no", "off"):
+        return False
+    return default
+
+
+def get_env_int(name: str, default: int = 0) -> int:
+    """Возвращает целочисленное значение переменной окружения.
+
+    Args:
+        name: Имя переменной.
+        default: Значение по умолчанию.
+
+    Returns:
+        Целое число или default при ошибке.
+    """
+    try:
+        return int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def get_env_float(name: str, default: float = 0.0) -> float:
+    """Возвращает число с плавающей точкой из переменной окружения.
+
+    Args:
+        name: Имя переменной.
+        default: Значение по умолчанию.
+
+    Returns:
+        Число или default при ошибке.
+    """
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\decorators.py
+Содержимое:
+# src/core/decorators.py
+
+import time
+import functools
+from typing import Any, Callable, TypeVar, Awaitable
+from .metrics import get_metrics
+
+T = TypeVar('T')
+
+
+def track_metrics(scenario_name: str) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
+    """Декоратор для отслеживания метрик выполнения сценария.
+
+    Устанавливает атрибут `_core_metrics_wrapped` на обёрнутую функцию.
+    """
+    def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
+        @functools.wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> T:
+            instance = args[0] if args else None
+            metrics = getattr(instance, '_metrics', None) or get_metrics()
+
+            start_time = time.perf_counter()
+            error = False
+            try:
+                result = await func(*args, **kwargs)
+                return result
+            except Exception:
+                error = True
+                raise
+            finally:
+                elapsed_ms = (time.perf_counter() - start_time) * 1000
+                try:
+                    await metrics.record(scenario_name, elapsed_ms, scenario=scenario_name, error=error)
+                except Exception:
+                    # fail-open: игнорируем ошибки метрик
+                    pass
+
+        # Помечаем, что функция уже обёрнута
+        wrapper._core_metrics_wrapped = True
+        return wrapper
+    return decorator
+
+
+def tracked_scenario(name: str):
+    """
+    Декоратор класса, который автоматически оборачивает метод execute
+    в декоратор track_metrics с указанным именем.
+    """
+    def decorator(cls):
+        original_execute = cls.execute
+        cls.execute = track_metrics(name)(original_execute)
+        # Устанавливаем флаг, чтобы BaseScenario не оборачивал повторно
+        cls.execute._core_metrics_wrapped = True
+        return cls
+    return decorator
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\dto.py
+Содержимое:
+"""Базовые DTO для сценариев."""
+
+from typing import Optional
+from pydantic import BaseModel, Field
+
+
+class BaseDTO(BaseModel):
+    """Базовый DTO с общими полями.
+
+    Может быть расширен в конкретных сценариях.
+    """
+
+    access_token: Optional[str] = Field(
+        default=None,
+        description="Токен доступа (используется для аутентификации)"
+    )
+    limit: int = Field(
+        default=100,
+        ge=1,
+        le=1000,
+        description="Количество записей на страницу"
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Смещение для пагинации"
+    )
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\exceptions.py
+Содержимое:
+"""Исключения core-package."""
+
+from typing import Optional
+
+
+class CoreError(Exception):
+    """Базовое исключение с необязательными кодом и HTTP-статусом."""
+
+    def __init__(self, message: str = "", *, code: Optional[int] = None, http_status: Optional[int] = None):
+        super().__init__(message)
+        self.code = code
+        self.http_status = http_status
+
+
+class NotFoundError(CoreError):
+    """Исключение, выбрасываемое когда сущность не найдена."""
+    def __init__(self, message: str = "Not found", **kwargs):
+        super().__init__(message, code=kwargs.pop('code', None), http_status=404, **kwargs)
+
+
+class ValidationError(CoreError):
+    """Исключение, выбрасываемое при ошибке валидации данных."""
+    def __init__(self, message: str = "Validation error", **kwargs):
+        super().__init__(message, code=kwargs.pop('code', None), http_status=422, **kwargs)
+
+
+class ConflictError(CoreError):
+    """Исключение, выбрасываемое при конфликте (например, дубликат)."""
+    def __init__(self, message: str = "Conflict", **kwargs):
+        super().__init__(message, code=kwargs.pop('code', None), http_status=409, **kwargs)
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\logger.py
+Содержимое:
+# src/core/logger.py
+"""Встроенная реализация ILogger для вывода в консоль или файл."""
+
+import logging
+from .interfaces.logger import ILogger
+from .config import get_env_var
+
+
+class ConsoleLogger(ILogger):
+    """Реализация ILogger с использованием стандартного модуля logging."""
+
+    def __init__(self, name: str = "core"):
+        self._logger = logging.getLogger(name)
+        if not self._logger.handlers:
+            self._setup_handler()
+
+    def _setup_handler(self):
+        log_file = get_env_var("CORE_LOG_FILE", "")
+        if log_file:
+            handler = logging.FileHandler(log_file)
+        else:
+            handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        handler.setFormatter(formatter)
+        self._logger.addHandler(handler)
+
+    def _log(self, level: int, message: str, **kwargs):
+        log_level = get_env_var("CORE_LOG_LEVEL", "INFO").upper()
+        self._logger.setLevel(log_level)
+        self._logger.log(level, message, extra=kwargs)
+
+    async def debug(self, message: str, **kwargs) -> None:
+        self._log(logging.DEBUG, message, **kwargs)
+
+    async def info(self, message: str, **kwargs) -> None:
+        self._log(logging.INFO, message, **kwargs)
+
+    async def warning(self, message: str, **kwargs) -> None:
+        self._log(logging.WARNING, message, **kwargs)
+
+    async def error(self, message: str, **kwargs) -> None:
+        self._log(logging.ERROR, message, **kwargs)
+
+    async def critical(self, message: str, **kwargs) -> None:
+        self._log(logging.CRITICAL, message, **kwargs)
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\metrics.py
+Содержимое:
+# src/core/metrics.py
+"""Встроенная реализация IMetrics для хранения метрик в памяти."""
+
+import time
+from typing import Dict, List, Optional
+from .interfaces.metrics import IMetrics
+from .config import get_env_bool
+
+
+class ScenarioStats:
+    """Статистика выполнения одного сценария."""
+
+    def __init__(self, name: str):
+        self.name = name
+        self.calls = 0
+        self.errors = 0
+        self.total_time_ms = 0.0
+        self.min_time_ms = float("inf")
+        self.max_time_ms = 0.0
+
+    def record(self, elapsed_ms: float, error: bool = False):
+        self.calls += 1
+        if error:
+            self.errors += 1
+        self.total_time_ms += elapsed_ms
+        if elapsed_ms < self.min_time_ms:
+            self.min_time_ms = elapsed_ms
+        if elapsed_ms > self.max_time_ms:
+            self.max_time_ms = elapsed_ms
+
+    @property
+    def avg_time_ms(self) -> float:
+        if self.calls == 0:
+            return 0.0
+        return self.total_time_ms / self.calls
+
+
+class InMemoryMetrics(IMetrics):
+    """Реализация IMetrics с хранением метрик в памяти."""
+
+    def __init__(self):
+        self._stats: Dict[str, ScenarioStats] = {}
+        self._enabled = get_env_bool("CORE_METRICS_ENABLED", True)
+
+    async def record(self, name: str, value: float, **labels) -> None:
+        """Записывает числовое значение метрики (время выполнения)."""
+        if not self._enabled:
+            return
+        scenario_name = labels.get("scenario", name)
+        error = labels.get("error", False)
+        if scenario_name not in self._stats:
+            self._stats[scenario_name] = ScenarioStats(scenario_name)
+        self._stats[scenario_name].record(value, error=error)
+
+    async def increment(self, name: str, **labels) -> None:
+        """Увеличивает счётчик метрики на 1 (используется для ошибок)."""
+        if not self._enabled:
+            return
+        scenario_name = labels.get("scenario", name)
+        if scenario_name not in self._stats:
+            self._stats[scenario_name] = ScenarioStats(scenario_name)
+        if labels.get("error", False):
+            self._stats[scenario_name].errors += 1
+
+    def get_stats(self) -> List[ScenarioStats]:
+        """Возвращает список статистики всех сценариев."""
+        return list(self._stats.values())
+
+    def clear(self) -> None:
+        """Очищает все метрики."""
+        self._stats.clear()
+
+
+_metrics_instance: Optional[InMemoryMetrics] = None
+
+
+def get_metrics() -> InMemoryMetrics:
+    """Возвращает глобальный экземпляр InMemoryMetrics."""
+    global _metrics_instance
+    if _metrics_instance is None:
+        _metrics_instance = InMemoryMetrics()
+    return _metrics_instance
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\scenario_registry.py
+Содержимое:
+"""Реестр сценариев для регистрации и получения сценариев по имени."""
+
+import importlib.metadata
+import logging
+from typing import Dict, Type, Any
+from .base_scenario import BaseScenario
+
+logger = logging.getLogger(__name__)
+
+
+class ScenarioRegistry:
+    """Реестр сценариев."""
+
+    _scenarios: Dict[str, Type[BaseScenario]] = {}
+    _autodiscovered = False
+
+    @classmethod
+    def register(cls, name: str, scenario_cls: Type[BaseScenario]) -> None:
+        if name in cls._scenarios:
+            raise ValueError(f"Scenario '{name}' already registered")
+        cls._scenarios[name] = scenario_cls
+
+    @classmethod
+    def get(cls, name: str, deps: Dict[str, Any]) -> BaseScenario:
+        scenario_cls = cls._scenarios.get(name)
+        if not scenario_cls:
+            raise ValueError(f"Scenario '{name}' not registered")
+        return scenario_cls(**deps)
+
+    @classmethod
+    def autodiscover(cls) -> None:
+        """Автоматически обнаруживает и регистрирует сценарии через entry points."""
+        if cls._autodiscovered:
+            return
+        cls._autodiscovered = True
+        try:
+            entry_points = importlib.metadata.entry_points()
+            if hasattr(entry_points, 'select'):
+                # Python 3.10+
+                core_entries = entry_points.select(group='core.scenarios')
+            else:
+                # Python 3.8/3.9
+                core_entries = entry_points.get('core.scenarios', [])
+        except Exception as e:
+            logger.warning("Failed to load entry points: %s", e)
+            return
+
+        for entry in core_entries:
+            try:
+                scenario_cls = entry.load()
+                if entry.name not in cls._scenarios:
+                    cls.register(entry.name, scenario_cls)
+            except Exception as e:
+                logger.warning(
+                    "Failed to load scenario from entry point '%s': %s",
+                    entry.name, e,
+                )
+
+    @classmethod
+    def list_scenarios(cls) -> Dict[str, Type[BaseScenario]]:
+        return cls._scenarios.copy()
+
+
+# Автоматически запускаем автодискаверинг при импорте модуля
+ScenarioRegistry.autodiscover()
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\types.py
+Содержимое:
+"""Общие типы и утилиты типов."""
+
+from typing import Union, Dict, Any
+
+# Идентификатор может быть int или str
+ID = Union[int, str]
+
+# JSON-совместимый тип
+JSON = Dict[str, Any]
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\__init__.py
+Содержимое:
+"""core-package: платформа для построения бизнес-сценариев.
+
+Экспортирует основные компоненты:
+- Интерфейсы: IDatabase, ICache, ILogger, IMetrics, ITransactionalDatabase
+- BaseScenario, ScenarioRegistry
+- Исключения, утилиты
+- Встроенные логгер, метрики и кеш
+- Декораторы для сбора метрик
+"""
+
+from .interfaces import IDatabase, ICache, ILogger, IMetrics, ITransactionalDatabase
+from .base_scenario import BaseScenario
+from .scenario_registry import ScenarioRegistry
+from .exceptions import CoreError, NotFoundError, ValidationError, ConflictError
+from .dto import BaseDTO
+from . import utils
+from .logger import ConsoleLogger
+from .metrics import InMemoryMetrics, get_metrics
+from .cache import InMemoryCache
+from .decorators import track_metrics, tracked_scenario
+
+__all__ = [
+    "IDatabase",
+    "ICache",
+    "ILogger",
+    "IMetrics",
+    "ITransactionalDatabase",
+    "BaseScenario",
+    "ScenarioRegistry",
+    "CoreError",
+    "NotFoundError",
+    "ValidationError",
+    "ConflictError",
+    "BaseDTO",
+    "utils",
+    "ConsoleLogger",
+    "InMemoryMetrics",
+    "InMemoryCache",
+    "get_metrics",
+    "track_metrics",
+    "tracked_scenario",
+]
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\interfaces\cache.py
+Содержимое:
+"""Интерфейс для кеширования."""
+
+from typing import Any, Optional, Protocol
+
+
+class ICache(Protocol):
+    """Асинхронный интерфейс для кеш-хранилища."""
+
+    async def get(self, key: str, **kwargs) -> Optional[Any]:
+        """Получает значение из кеша по ключу.
+
+        Args:
+            key: Ключ.
+            **kwargs: Дополнительные параметры.
+
+        Returns:
+            Значение или None, если ключ отсутствует.
+        """
+        ...
+
+    async def set(self, key: str, value: Any, ttl: Optional[int] = None, **kwargs) -> None:
+        """Сохраняет значение в кеш с опциональным TTL.
+
+        Args:
+            key: Ключ.
+            value: Значение.
+            ttl: Время жизни в секундах (опционально).
+            **kwargs: Дополнительные параметры.
+        """
+        ...
+
+    async def delete(self, key: str, **kwargs) -> None:
+        """Удаляет запись из кеша по ключу.
+
+        Args:
+            key: Ключ.
+            **kwargs: Дополнительные параметры.
+        """
+        ...
+
+    async def clear(self, **kwargs) -> None:
+        """Очищает весь кеш.
+
+        Args:
+            **kwargs: Дополнительные параметры.
+        """
+        ...
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\interfaces\database.py
+Содержимое:
+"""Интерфейс для работы с базой данных."""
+
+from typing import Any, Dict, List, Optional, Protocol
+
+
+class IDatabase(Protocol):
+    """Асинхронный интерфейс для доступа к базе данных."""
+
+    async def create(self, entity: str, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        """Создаёт запись в таблице entity.
+
+        Args:
+            entity: Имя таблицы.
+            data: Данные для вставки (словарь полей и значений).
+            **kwargs: Дополнительные параметры (например, channel, timeout).
+
+        Returns:
+            Созданная запись в виде словаря.
+
+        Raises:
+            Exception: При ошибке выполнения запроса.
+        """
+        ...
+
+    async def read(self, entity: str, id: Any, **kwargs) -> Optional[Dict[str, Any]]:
+        """Читает запись по первичному ключу.
+
+        Args:
+            entity: Имя таблицы.
+            id: Значение первичного ключа.
+            **kwargs: Дополнительные параметры.
+
+        Returns:
+            Запись в виде словаря или None, если не найдена.
+        """
+        ...
+
+    async def update(self, entity: str, id: Any, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        """Обновляет запись по первичному ключу.
+
+        Args:
+            entity: Имя таблицы.
+            id: Значение первичного ключа.
+            data: Данные для обновления.
+            **kwargs: Дополнительные параметры.
+
+        Returns:
+            Обновлённая запись.
+
+        Raises:
+            Exception: Если запись не найдена или ошибка выполнения.
+        """
+        ...
+
+    async def delete(self, entity: str, id: Any, **kwargs) -> bool:
+        """Удаляет запись по первичному ключу.
+
+        Args:
+            entity: Имя таблицы.
+            id: Значение первичного ключа.
+            **kwargs: Дополнительные параметры.
+
+        Returns:
+            True, если запись была удалена, иначе False.
+        """
+        ...
+
+    async def custom(self, sql: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
+        """Выполняет произвольный SQL-запрос.
+
+        Args:
+            sql: SQL-запрос с плейсхолдерами (например, :id).
+            params: Словарь параметров для подстановки.
+            **kwargs: Дополнительные параметры.
+
+        Returns:
+            Список записей в виде словарей.
+
+        Raises:
+            Exception: При ошибке выполнения запроса.
+        """
+        ...
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\interfaces\logger.py
+Содержимое:
+"""Интерфейс для логирования."""
+
+from typing import Protocol
+
+
+class ILogger(Protocol):
+    """Асинхронный интерфейс для логирования."""
+
+    async def debug(self, message: str, **kwargs) -> None:
+        """Логирует сообщение уровня DEBUG."""
+        ...
+
+    async def info(self, message: str, **kwargs) -> None:
+        """Логирует сообщение уровня INFO."""
+        ...
+
+    async def warning(self, message: str, **kwargs) -> None:
+        """Логирует сообщение уровня WARNING."""
+        ...
+
+    async def error(self, message: str, **kwargs) -> None:
+        """Логирует сообщение уровня ERROR."""
+        ...
+
+    async def critical(self, message: str, **kwargs) -> None:
+        """Логирует сообщение уровня CRITICAL."""
+        ...
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\interfaces\metrics.py
+Содержимое:
+"""Интерфейс для сбора метрик."""
+
+from typing import Protocol
+
+
+class IMetrics(Protocol):
+    """Асинхронный интерфейс для сбора метрик."""
+
+    async def record(self, name: str, value: float, **labels) -> None:
+        """Записывает числовое значение метрики (например, время выполнения).
+
+        Args:
+            name: Имя метрики.
+            value: Числовое значение.
+            **labels: Дополнительные метки (ключ-значение).
+        """
+        ...
+
+    async def increment(self, name: str, **labels) -> None:
+        """Увеличивает счётчик метрики на 1.
+
+        Args:
+            name: Имя метрики.
+            **labels: Дополнительные метки.
+        """
+        ...
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\interfaces\transactional_database.py
+Содержимое:
+"""Расширенный интерфейс для БД с поддержкой транзакций."""
+
+from typing import Protocol
+from contextlib import AbstractAsyncContextManager
+
+from .database import IDatabase
+
+
+class ITransactionalDatabase(IDatabase, Protocol):
+    """Асинхронный интерфейс для БД с поддержкой транзакций."""
+
+    async def begin_transaction(self, **kwargs) -> None:
+        """Начинает транзакцию."""
+        ...
+
+    async def commit_transaction(self, **kwargs) -> None:
+        """Фиксирует транзакцию."""
+        ...
+
+    async def rollback_transaction(self, **kwargs) -> None:
+        """Откатывает транзакцию."""
+        ...
+
+    def transaction(self, **kwargs) -> AbstractAsyncContextManager:
+        """Возвращает асинхронный контекстный менеджер для транзакции."""
+        ...
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\interfaces\__init__.py
+Содержимое:
+"""Интерфейсы для внешних зависимостей."""
+
+from .database import IDatabase
+from .cache import ICache
+from .logger import ILogger
+from .metrics import IMetrics
+from .transactional_database import ITransactionalDatabase
+
+__all__ = ["IDatabase", "ICache", "ILogger", "IMetrics", "ITransactionalDatabase"]
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\templates\adapter_template.py
+Содержимое:
+"""Пример адаптера для инфраструктурного пакета event-infra.
+
+Этот адаптер реализует интерфейс IDatabase для EventRouter из пакета event-infra.
+"""
+
+from typing import Any, Dict, List, Optional
+
+from core.interfaces import IDatabase
+
+
+class EventInfraDatabaseAdapter(IDatabase):
+    """Адаптер, связывающий IDatabase с EventRouter."""
+
+    def __init__(self, router):
+        self._router = router
+
+    async def create(self, entity: str, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        channel = kwargs.get("channel", "write")
+        resp = await self._router.create(entity, data, channel=channel)
+        if not resp.success:
+            raise Exception(resp.error.message)
+        return resp.data[0] if resp.data else {}
+
+    async def read(self, entity: str, id: Any, **kwargs) -> Optional[Dict[str, Any]]:
+        channel = kwargs.get("channel", "read")
+        resp = await self._router.read(entity, id, channel=channel)
+        if not resp.success:
+            raise Exception(resp.error.message)
+        return resp.data[0] if resp.data else None
+
+    async def update(self, entity: str, id: Any, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        channel = kwargs.get("channel", "write")
+        resp = await self._router.update(entity, id, data, channel=channel)
+        if not resp.success:
+            raise Exception(resp.error.message)
+        return resp.data[0] if resp.data else {}
+
+    async def delete(self, entity: str, id: Any, **kwargs) -> bool:
+        channel = kwargs.get("channel", "write")
+        resp = await self._router.delete(entity, id, channel=channel)
+        if not resp.success:
+            raise Exception(resp.error.message)
+        return resp.count > 0
+
+    async def custom(self, sql: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
+        channel = kwargs.get("channel", "read")
+        resp = await self._router.custom(sql, params, channel=channel)
+        if not resp.success:
+            raise Exception(resp.error.message)
+        result = []
+        for item in resp.data or []:
+            row = item.get("row")
+            if row is not None:
+                if hasattr(row, '_mapping'):
+                    result.append(dict(row._mapping))
+                elif isinstance(row, dict):
+                    result.append(row)
+                else:
+                    result.append({"value": row})
+        return result
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\templates\env_template.txt
+Содержимое:
+# ============================================================
+# Конфигурация core-package для вашего проекта
+# ============================================================
+
+# --- Безопасность ---
+# Секрет для JWT (обязательно измените в production!)
+CORE_JWT_SECRET=change-me-in-production
+
+# Время жизни access-токена (минуты)
+CORE_ACCESS_TOKEN_MINUTES=15
+
+# Время жизни refresh-токена (дни)
+CORE_REFRESH_TOKEN_DAYS=30
+
+# Количество раундов bcrypt (от 4 до 31, рекомендуем 12)
+CORE_BCRYPT_ROUNDS=12
+
+# --- Логирование и метрики ---
+# Включить сбор метрик (true/false)
+CORE_METRICS_ENABLED=true
+
+# Уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+CORE_LOG_LEVEL=INFO
+
+# Путь к файлу лога (если не указан, вывод в stdout)
+# CORE_LOG_FILE=./logs/core.log
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\templates\main_template.py
+Содержимое:
+# templates/main_template.py
+"""Пример использования core-package с in-memory заглушкой БД.
+
+Демонстрирует:
+- Создание in-memory адаптера IDatabase
+- Использование встроенных логгера и метрик
+- Регистрацию и выполнение сценария
+- Вывод метрик после выполнения
+
+Запуск:
+    python examples/main_example.py
+"""
+
+import asyncio
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel
+
+from core import (
+    BaseScenario,
+    IDatabase,
+    ScenarioRegistry,
+    ConsoleLogger,
+    InMemoryMetrics,
+)
+from core.exceptions import NotFoundError
+
+
+class InMemoryDatabase(IDatabase):
+    """Простая in-memory реализация IDatabase для демонстрации."""
+
+    def __init__(self):
+        self._data: Dict[str, Dict[int, Dict[str, Any]]] = {}
+        self._counters: Dict[str, int] = {}
+
+    async def create(self, entity: str, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        if entity not in self._data:
+            self._data[entity] = {}
+            self._counters[entity] = 0
+        self._counters[entity] += 1
+        record = {"id": self._counters[entity], **data}
+        self._data[entity][record["id"]] = record
+        return record
+
+    async def read(self, entity: str, id: Any, **kwargs) -> Optional[Dict[str, Any]]:
+        return self._data.get(entity, {}).get(id)
+
+    async def update(self, entity: str, id: Any, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        if entity not in self._data or id not in self._data[entity]:
+            raise NotFoundError(f"Record {id} not found in {entity}")
+        self._data[entity][id].update(data)
+        return self._data[entity][id]
+
+    async def delete(self, entity: str, id: Any, **kwargs) -> bool:
+        if entity in self._data and id in self._data[entity]:
+            del self._data[entity][id]
+            return True
+        return False
+
+    async def custom(self, sql: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
+        parts = sql.lower().split("from")
+        if len(parts) > 1:
+            table = parts[1].strip().split()[0]
+            if table in self._data:
+                return list(self._data[table].values())
+        return []
+
+
+class GreetingDTO(BaseModel):
+    user_id: int
+    name: str
+
+
+class GreetingResponse(BaseModel):
+    user_id: int
+    greeting: str
+
+
+class GreetingScenario(BaseScenario):
+    """Пример сценария: приветствие пользователя."""
+
+    async def execute(self, dto: GreetingDTO) -> GreetingResponse:
+        if self._logger:
+            await self._logger.info(f"Выполнение GreetingScenario для user_id={dto.user_id}")
+
+        user = await self._db.read("users", dto.user_id)
+        if not user:
+            user = await self._db.create("users", {"id": dto.user_id, "name": dto.name})
+            if self._logger:
+                await self._logger.info(f"Создан пользователь: {user}")
+
+        if self._cache:
+            await self._cache.set(f"greeting:{dto.user_id}", f"Hello, {user['name']}!", ttl=60)
+
+        if self._metrics:
+            await self._metrics.increment("greeting_calls", user_id=dto.user_id)
+
+        return GreetingResponse(user_id=user["id"], greeting=f"Hello, {user['name']}!")
+
+
+async def main():
+    print("=" * 50)
+    print("ЗАПУСК ПРИМЕРА core-package")
+    print("=" * 50)
+
+    db = InMemoryDatabase()
+    logger = ConsoleLogger()
+    metrics = InMemoryMetrics()
+
+    ScenarioRegistry.register("greeting", GreetingScenario)
+
+    deps = {"db": db, "logger": logger, "metrics": metrics}
+    scenario = ScenarioRegistry.get("greeting", deps)
+
+    dto = GreetingDTO(user_id=42, name="Alice")
+    print(f"\nВызов с user_id={dto.user_id}, name={dto.name}")
+    response = await scenario.execute(dto)
+    print(f"Ответ: {response.greeting}")
+
+    dto2 = GreetingDTO(user_id=100, name="Bob")
+    print(f"\nВызов с user_id={dto2.user_id}, name={dto2.name}")
+    response2 = await scenario.execute(dto2)
+    print(f"Ответ: {response2.greeting}")
+
+    print("\n" + "=" * 50)
+    print("МЕТРИКИ ВЫПОЛНЕНИЯ")
+    print("=" * 50)
+    stats = metrics.get_stats()
+    for s in stats:
+        print(f"  {s.name}:")
+        print(f"    Вызовов: {s.calls}")
+        print(f"    Ошибок: {s.errors}")
+        print(f"    Среднее время: {s.avg_time_ms:.2f} мс")
+        print(f"    Мин. время: {s.min_time_ms:.2f} мс")
+        print(f"    Макс. время: {s.max_time_ms:.2f} мс")
+
+    print("\nПример успешно выполнен.")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\templates\run_example_template.py
+Содержимое:
+# templates/run_example_template.py
+"""Пример использования core-package с in-memory заглушкой БД.
+
+Демонстрирует:
+- Создание in-memory адаптера IDatabase
+- Использование встроенных логгера и метрик
+- Регистрацию и выполнение сценария
+- Вывод метрик после выполнения
+
+Запуск:
+    python examples/run_example.py
+"""
+
+import asyncio
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel
+
+from core import (
+    BaseScenario,
+    IDatabase,
+    ScenarioRegistry,
+    ConsoleLogger,
+    InMemoryMetrics,
+    track_metrics,
+)
+from core.exceptions import NotFoundError
+
+
+# ============================================================
+# 1. ЗАГЛУШКА БАЗЫ ДАННЫХ (IN-MEMORY)
+# ============================================================
+
+class InMemoryDatabase(IDatabase):
+    """Простая in-memory реализация IDatabase для демонстрации."""
+
+    def __init__(self):
+        self._data: Dict[str, Dict[int, Dict[str, Any]]] = {}
+        self._counters: Dict[str, int] = {}
+
+    async def create(self, entity: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        if entity not in self._data:
+            self._data[entity] = {}
+            self._counters[entity] = 0
+        self._counters[entity] += 1
+        record = {"id": self._counters[entity], **data}
+        self._data[entity][record["id"]] = record
+        return record
+
+    async def read(self, entity: str, id: Any) -> Optional[Dict[str, Any]]:
+        return self._data.get(entity, {}).get(id)
+
+    async def update(self, entity: str, id: Any, data: Dict[str, Any]) -> Dict[str, Any]:
+        if entity not in self._data or id not in self._data[entity]:
+            raise NotFoundError(f"Record {id} not found in {entity}")
+        self._data[entity][id].update(data)
+        return self._data[entity][id]
+
+    async def delete(self, entity: str, id: Any) -> bool:
+        if entity in self._data and id in self._data[entity]:
+            del self._data[entity][id]
+            return True
+        return False
+
+    async def custom(self, sql: str, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+        # Упрощённая имитация – возвращаем все записи таблицы
+        parts = sql.lower().split("from")
+        if len(parts) > 1:
+            table = parts[1].strip().split()[0]
+            if table in self._data:
+                return list(self._data[table].values())
+        return []
+
+
+# ============================================================
+# 2. ОПРЕДЕЛЕНИЕ СЦЕНАРИЯ
+# ============================================================
+
+class GreetingDTO(BaseModel):
+    user_id: int
+    name: str
+
+
+class GreetingResponse(BaseModel):
+    user_id: int
+    greeting: str
+
+
+class GreetingScenario(BaseScenario):
+    """Пример сценария: приветствие пользователя."""
+
+    @track_metrics("greeting_scenario")
+    async def execute(self, dto: GreetingDTO) -> GreetingResponse:
+        if self._logger:
+            await self._logger.info(f"Выполнение GreetingScenario для user_id={dto.user_id}")
+
+        user = await self._db.read("users", dto.user_id)
+        if not user:
+            user = await self._db.create("users", {"id": dto.user_id, "name": dto.name})
+            if self._logger:
+                await self._logger.info(f"Создан пользователь: {user}")
+
+        if self._cache:
+            await self._cache.set(f"greeting:{dto.user_id}", f"Hello, {user['name']}!", ttl=60)
+
+        if self._metrics:
+            await self._metrics.increment("greeting_calls", user_id=dto.user_id)
+
+        return GreetingResponse(user_id=user["id"], greeting=f"Hello, {user['name']}!")
+
+
+# ============================================================
+# 3. ЗАПУСК
+# ============================================================
+
+async def main():
+    print("=" * 50)
+    print("ЗАПУСК ПРИМЕРА core-package")
+    print("=" * 50)
+
+    # 1. Создаём зависимости
+    db = InMemoryDatabase()
+    logger = ConsoleLogger()
+    metrics = InMemoryMetrics()
+
+    # 2. Регистрируем сценарий
+    ScenarioRegistry.register("greeting", GreetingScenario)
+
+    # 3. Получаем экземпляр сценария
+    deps = {"db": db, "logger": logger, "metrics": metrics}
+    scenario = ScenarioRegistry.get("greeting", deps)
+
+    # 4. Выполняем сценарий несколько раз
+    dto = GreetingDTO(user_id=42, name="Alice")
+    print(f"\nВызов с user_id={dto.user_id}, name={dto.name}")
+    response = await scenario.execute(dto)
+    print(f"Ответ: {response.greeting}")
+
+    dto2 = GreetingDTO(user_id=100, name="Bob")
+    print(f"\nВызов с user_id={dto2.user_id}, name={dto2.name}")
+    response2 = await scenario.execute(dto2)
+    print(f"Ответ: {response2.greeting}")
+
+    # 5. Выводим метрики
+    print("\n" + "=" * 50)
+    print("МЕТРИКИ ВЫПОЛНЕНИЯ")
+    print("=" * 50)
+    stats = metrics.get_stats()
+    for s in stats:
+        print(f"  {s.name}:")
+        print(f"    Вызовов: {s.calls}")
+        print(f"    Ошибок: {s.errors}")
+        print(f"    Среднее время: {s.avg_time_ms:.2f} мс")
+        print(f"    Мин. время: {s.min_time_ms:.2f} мс")
+        print(f"    Макс. время: {s.max_time_ms:.2f} мс")
+
+    print("\nПример успешно выполнен.")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\templates\scenario_template.py
+Содержимое:
+"""Пример сценария для core-package.
+
+Этот файл демонстрирует, как создать собственный сценарий,
+унаследовав BaseScenario и зарегистрировав его в реестре.
+"""
+
+from pydantic import BaseModel
+from core import BaseScenario, IDatabase, ICache, ILogger, IMetrics
+from core.exceptions import NotFoundError
+
+
+# 1. Определите DTO для входных данных
+class MyScenarioDTO(BaseModel):
+    """DTO для моего сценария."""
+    user_id: int
+    name: str
+
+
+# 2. Определите Response (результат)
+class MyScenarioResponse(BaseModel):
+    """Ответ моего сценария."""
+    user_id: int
+    greeting: str
+
+
+# 3. Создайте класс сценария
+class MyScenario(BaseScenario):
+    """Пример сценария: приветствие пользователя по ID."""
+
+    async def execute(self, dto: MyScenarioDTO) -> MyScenarioResponse:
+        # Пример использования зависимостей:
+        # - self._db – для работы с БД
+        # - self._cache – для кеширования
+        # - self._logger – для логирования
+        # - self._metrics – для сбора метрик
+
+        # Логируем начало выполнения
+        if self._logger:
+            await self._logger.info(f"Выполнение MyScenario для user_id={dto.user_id}")
+
+        # Запрос к БД (пример)
+        user = await self._db.read("users", dto.user_id)
+        if not user:
+            raise NotFoundError(f"User {dto.user_id} not found")
+
+        # Кешируем результат (пример)
+        if self._cache:
+            cache_key = f"user_greeting:{dto.user_id}"
+            await self._cache.set(cache_key, f"Hello, {user['name']}!", ttl=60)
+
+        # Собираем метрику
+        if self._metrics:
+            await self._metrics.increment("my_scenario_executed", user_id=dto.user_id)
+
+        return MyScenarioResponse(
+            user_id=user["id"],
+            greeting=f"Hello, {user['name']}!",
+        )
+
+
+# 4. Зарегистрируйте сценарий в реестре (можно через entry points)
+# В pyproject.toml добавьте:
+# [project.entry-points."core.scenarios"]
+# my_scenario = "my_project.scenarios:MyScenario"
+
+# Или зарегистрируйте вручную в коде:
+# from core import ScenarioRegistry
+# ScenarioRegistry.register("my_scenario", MyScenario)
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\templates\structure_template\README.md
+Содержимое:
+# Структура проекта для core-package
+
+Это базовая структура, создаваемая командой `core-init`.
+
+- `scenarios/` – ваши сценарии (наследники BaseScenario).
+- `interfaces/` – реализации интерфейсов (адаптеры) для вашей инфраструктуры.
+- `utils/` – ваши дополнительные утилиты.
+
+После инициализации вы можете:
+1. Создать адаптер для вашей БД (например, для event-infra).
+2. Написать свои сценарии в `scenarios/`.
+3. Зарегистрировать их в `pyproject.toml` через entry points.
+
+Подробнее см. в документации core-package.
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\templates\structure_template\interfaces\__init__.py
+Содержимое:
+"""Реализации интерфейсов (адаптеры) для вашей инфраструктуры."""
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\templates\structure_template\scenarios\__init__.py
+Содержимое:
+"""Ваши сценарии (наследники BaseScenario)."""
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\templates\structure_template\utils\__init__.py
+Содержимое:
+"""Ваши дополнительные утилиты."""
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\utils\datetime_utils.py
+Содержимое:
+"""Утилиты для работы с датами и временем.
+
+Основано на исходном коде core/utils/ (адаптировано).
+"""
+
+from datetime import datetime, timezone, timedelta
+from typing import Optional
+
+
+def parse_iso_datetime(value: str) -> datetime:
+    """Парсит ISO-строку в datetime.
+
+    Поддерживает форматы:
+    - "2026-01-01T10:00:00"
+    - "2026-01-01 10:00:00"
+    - с указанием часового пояса: "2026-01-01T10:00:00+03:00"
+
+    Args:
+        value: Строка с датой и временем.
+
+    Returns:
+        datetime (без учёта часового пояса, если не указан).
+
+    Raises:
+        ValueError: Если строка не соответствует формату.
+    """
+    s = value.replace(" ", "T")
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        try:
+            dt = datetime.fromisoformat(s + ":00")
+        except ValueError:
+            raise ValueError(f"Не удалось распарсить дату: {value}")
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
+def normalize_timezone(dt: datetime, offset_hours: int = 0) -> datetime:
+    """Приводит datetime к заданному смещению (или к UTC).
+
+    Args:
+        dt: datetime (предполагается наивным или с UTC).
+        offset_hours: Смещение в часах от UTC (положительное – восточнее).
+
+    Returns:
+        datetime с смещением offset_hours (наивный, без tzinfo).
+    """
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt + timedelta(hours=offset_hours)
+
+
+def is_datetime_in_past(dt: datetime, now: Optional[datetime] = None) -> bool:
+    """Проверяет, является ли datetime прошедшим.
+
+    Args:
+        dt: Проверяемый datetime.
+        now: Текущее время (если None, используется datetime.now()).
+
+    Returns:
+        True, если dt < now.
+    """
+    if now is None:
+        now = datetime.now()
+    return dt < now
+
+
+def format_iso(dt: datetime, with_timezone: bool = False) -> str:
+    """Форматирует datetime в ISO-строку.
+
+    Args:
+        dt: datetime.
+        with_timezone: Добавлять ли часовой пояс (UTC).
+
+    Returns:
+        Строка в формате "YYYY-MM-DDTHH:MM:SS" или с "Z" если with_timezone=True.
+    """
+    if with_timezone:
+        return dt.isoformat() + "Z"
+    return dt.isoformat()
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\utils\security.py
+Содержимое:
+"""Утилиты безопасности: хеширование паролей (bcrypt) и JWT.
+
+Основано на исходном коде core/utils/security.py проекта Proj.
+"""
+
+import asyncio
+import time
+import uuid
+from dataclasses import dataclass
+from typing import Optional
+
+import jwt
+import bcrypt
+from core.config import (
+    get_env_int,
+    get_env_var,
+)
+
+# Загрузка конфигурации из переменных окружения
+JWT_SECRET = get_env_var("CORE_JWT_SECRET", "change-me-in-production")
+ACCESS_TOKEN_MINUTES = get_env_int("CORE_ACCESS_TOKEN_MINUTES", 15)
+REFRESH_TOKEN_DAYS = get_env_int("CORE_REFRESH_TOKEN_DAYS", 30)
+BCRYPT_ROUNDS = get_env_int("CORE_BCRYPT_ROUNDS", 12)
+
+
+@dataclass
+class TokenInfo:
+    """Результат декодирования access токена."""
+    user_id: int
+    role: str
+
+
+# ========== Хеширование паролей ==========
+
+async def hash_password(password: str) -> str:
+    """Асинхронно хеширует пароль с помощью bcrypt.
+
+    Args:
+        password: Пароль в открытом виде.
+
+    Returns:
+        Хеш пароля в виде строки.
+    """
+    return await asyncio.to_thread(_hash_password_sync, password)
+
+
+def _hash_password_sync(password: str) -> str:
+    return bcrypt.hashpw(
+        password.encode(),
+        bcrypt.gensalt(rounds=BCRYPT_ROUNDS)
+    ).decode()
+
+
+async def verify_password(password: str, hashed: str) -> bool:
+    """Асинхронно проверяет пароль на соответствие хешу.
+
+    Args:
+        password: Пароль в открытом виде.
+        hashed: Хеш для сравнения.
+
+    Returns:
+        True, если пароль совпадает.
+    """
+    return await asyncio.to_thread(_verify_password_sync, password, hashed)
+
+
+def _verify_password_sync(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode(), hashed.encode())
+
+
+# ========== JWT ==========
+
+def create_access_token(user_id: int, role: str, secret: Optional[str] = None, expires_in: Optional[int] = None) -> str:
+    """Создаёт access-токен.
+
+    Args:
+        user_id: ID пользователя.
+        role: Роль пользователя.
+        secret: Секрет для подписи (если None, используется глобальный).
+        expires_in: Время жизни в минутах (если None, используется глобальное).
+
+    Returns:
+        JWT-токен в виде строки.
+    """
+    secret = secret or JWT_SECRET
+    expires_in = expires_in or ACCESS_TOKEN_MINUTES
+    now = int(time.time())
+    payload = {
+        "sub": str(user_id),
+        "role": role,
+        "type": "access",
+        "jti": str(uuid.uuid4()),
+        "iat": now,
+        "exp": now + expires_in * 60,
+    }
+    return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def create_refresh_token(user_id: int, secret: Optional[str] = None, expires_in: Optional[int] = None) -> str:
+    """Создаёт refresh-токен.
+
+    Args:
+        user_id: ID пользователя.
+        secret: Секрет для подписи (если None, используется глобальный).
+        expires_in: Время жизни в днях (если None, используется глобальное).
+
+    Returns:
+        JWT-токен в виде строки.
+    """
+    secret = secret or JWT_SECRET
+    expires_in = expires_in or REFRESH_TOKEN_DAYS
+    now = int(time.time())
+    payload = {
+        "sub": str(user_id),
+        "type": "refresh",
+        "jti": str(uuid.uuid4()),
+        "iat": now,
+        "exp": now + expires_in * 86400,
+    }
+    return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def decode_token(token: str, secret: Optional[str] = None) -> dict:
+    """Декодирует JWT-токен.
+
+    Args:
+        token: JWT-токен.
+        secret: Секрет для верификации (если None, используется глобальный).
+
+    Returns:
+        Словарь с данными токена.
+
+    Raises:
+        jwt.InvalidTokenError: Если токен недействителен.
+    """
+    secret = secret or JWT_SECRET
+    return jwt.decode(token, secret, algorithms=["HS256"])
+
+
+def extract_token_info(token: str, secret: Optional[str] = None) -> TokenInfo:
+    """Извлекает user_id и роль из access токена.
+
+    Args:
+        token: Access-токен.
+        secret: Секрет (опционально).
+
+    Returns:
+        TokenInfo с user_id и role.
+
+    Raises:
+        jwt.InvalidTokenError: Если токен недействителен.
+    """
+    payload = decode_token(token, secret)
+    return TokenInfo(
+        user_id=int(payload["sub"]),
+        role=payload.get("role", ""),
+    )
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\utils\validators.py
+Содержимое:
+"""Общие валидаторы.
+
+Основано на исходном коде core/utils/validators.py.
+"""
+
+import re
+from typing import Any
+
+from core.exceptions import ValidationError
+
+
+def validate_pagination(limit: int, offset: int) -> None:
+    """Проверяет корректность параметров пагинации.
+
+    Args:
+        limit: Количество записей (должно быть от 1 до 1000).
+        offset: Смещение (должно быть >= 0).
+
+    Raises:
+        ValidationError: Если параметры некорректны.
+    """
+    if limit < 1 or limit > 1000:
+        raise ValidationError("limit must be between 1 and 1000")
+    if offset < 0:
+        raise ValidationError("offset must be >= 0")
+
+
+def validate_required(value: Any, field_name: str) -> None:
+    """Проверяет, что обязательное поле не None и не пустая строка.
+
+    Args:
+        value: Значение поля.
+        field_name: Имя поля для сообщения об ошибке.
+
+    Raises:
+        ValidationError: Если поле отсутствует или пустое.
+    """
+    if value is None or (isinstance(value, str) and not value.strip()):
+        raise ValidationError(f"{field_name} is required")
+
+
+def validate_email(email: str) -> None:
+    """Проверяет, что строка является корректным email-адресом.
+
+    Args:
+        email: Email для проверки.
+
+    Raises:
+        ValidationError: Если email не соответствует формату.
+    """
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    if not re.match(pattern, email):
+        raise ValidationError(f"Invalid email: {email}")
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core\utils\__init__.py
+Содержимое:
+"""Утилиты core-package: безопасность, даты, валидация."""
+
+from .security import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    extract_token_info,
+    TokenInfo,
+)
+from .datetime_utils import (
+    parse_iso_datetime,
+    normalize_timezone,
+    is_datetime_in_past,
+    format_iso,
+)
+from .validators import (
+    validate_pagination,
+    validate_required,
+    validate_email,
+)
+
+__all__ = [
+    "hash_password",
+    "verify_password",
+    "create_access_token",
+    "create_refresh_token",
+    "decode_token",
+    "extract_token_info",
+    "TokenInfo",
+    "parse_iso_datetime",
+    "normalize_timezone",
+    "is_datetime_in_past",
+    "format_iso",
+    "validate_pagination",
+    "validate_required",
+    "validate_email",
+]
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core_package.egg-info\dependency_links.txt
+Содержимое:
+
+
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core_package.egg-info\entry_points.txt
+Содержимое:
+[console_scripts]
+core-init = core.cli:init
+
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core_package.egg-info\PKG-INFO
+Содержимое:
+Metadata-Version: 2.4
+Name: core-package
+Version: 0.1.0
+Summary: Платформа для построения бизнес-сценариев с абстракциями и утилитами
+Author-email: Your Name <your@email.com>
+License: MIT
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pydantic>=2.0
+Requires-Dist: python-dotenv>=1.0
+Requires-Dist: pyjwt>=2.0
+Requires-Dist: bcrypt>=4.0
+Dynamic: license-file
+
+# core-package
+
+Платформа для построения бизнес-сценариев с абстракциями и утилитами.
+
+## Назначение
+
+Пакет предоставляет:
+- Интерфейсы для внешних зависимостей (БД, кеш, логирование, метрики)
+- Базовый класс для сценариев и реестр сценариев
+- Утилиты: безопасность (bcrypt, JWT), работа с датами, валидаторы
+- Встроенные логгер и метрики в памяти
+- CLI-команду `core-init` для быстрой инициализации проекта
+
+## Быстрый старт
+
+1. Установка:
+   ```bash
+   pip install git+https://github.com/ваш-username/core-package.git
+Инициализация проекта:
+
+bash
+core-init
+Будут созданы:
+
+.core-package.env – файл с переменными окружения
+
+scenarios/, interfaces/, utils/ – папки для вашего кода
+
+examples/ – примеры использования
+
+Создайте свой сценарий, унаследовав BaseScenario, и зарегистрируйте его.
+
+Архитектура
+Пакет построен по принципам гексагональной архитектуры:
+
+Интерфейсы (core.interfaces) – абстракции для БД, кеша, логгера и метрик
+
+Базовый сценарий (BaseScenario) – основа для всех бизнес-сценариев
+
+Реестр сценариев (ScenarioRegistry) – регистрация и получение сценариев по имени
+
+Утилиты (core.utils) – чистые функции: безопасность, даты, валидация
+
+Встроенные реализации
+Пакет предоставляет готовые реализации интерфейсов, которые можно использовать прямо в проекте:
+
+ConsoleLogger – логирует сообщения в стандартный вывод или в файл (настраивается через CORE_LOG_FILE). Уровень логирования задаётся через CORE_LOG_LEVEL.
+
+InMemoryMetrics – хранит метрики в памяти. Доступна через core.get_metrics(). Поддерживает запись времени выполнения (record) и счётчики ошибок (increment).
+
+Декоратор @track_metrics – автоматически собирает время выполнения и ошибки для метода execute сценария.
+
+После инициализации вы можете запустить рабочий пример, который демонстрирует использование core-package с in-memory заглушкой БД:
+
+```bash
+python examples/run_example.py
+```
+Вы увидите выполнение сценария, логирование и метрики в консоли.
+
+
+Пример использования:
+
+python
+from core import BaseScenario, ConsoleLogger, InMemoryMetrics, track_metrics
+
+class MyScenario(BaseScenario):
+    @track_metrics("my_scenario")
+    async def execute(self, dto):
+        # логика сценария
+        pass
+
+
+## Автоматический сбор метрик
+
+Используйте декоратор класса `@tracked_scenario` для автоматического сбора метрик выполнения метода `execute`:
+
+```python
+from core import BaseScenario, tracked_scenario
+
+@tracked_scenario("my_scenario")
+class MyScenario(BaseScenario):
+    async def execute(self, dto):
+        ...
+```
+Кеширование
+Пакет предоставляет in-memory реализацию ICache – InMemoryCache:
+
+```python
+from core import InMemoryCache
+
+cache = InMemoryCache(ttl_seconds=60, max_size=1000)
+```
+Транзакции
+Для поддержки транзакций используйте интерфейс ITransactionalDatabase:
+
+```python
+from core.interfaces import ITransactionalDatabase
+
+class MyDb(ITransactionalDatabase):
+    async def begin_transaction(self): ...
+    async def commit_transaction(self): ...
+    async def rollback_transaction(self): ...
+    def transaction(self): ...
+
+# Использование:
+async with db.transaction():
+    await db.create(...)
+    await db.update(...)
+```
+
+# В приложении:
+logger = ConsoleLogger()
+metrics = InMemoryMetrics()
+scenario = MyScenario(db=db, logger=logger, metrics=metrics)
+Расширение
+Чтобы добавить свой сценарий:
+
+Создайте класс, унаследовав BaseScenario
+
+Реализуйте метод execute(dto) -> Response
+
+Зарегистрируйте сценарий через entry point в pyproject.toml:
+
+toml
+[project.entry-points."core.scenarios"]
+my_scenario = "my_project.scenarios:MyScenario"
+Конфигурация
+Все настройки задаются через переменные окружения в файле .core-package.env:
+
+Переменная	Описание	Значение по умолчанию
+CORE_JWT_SECRET	Секрет для JWT	change-me-in-production
+CORE_ACCESS_TOKEN_MINUTES	Время жизни access-токена (минуты)	15
+CORE_REFRESH_TOKEN_DAYS	Время жизни refresh-токена (дни)	30
+CORE_BCRYPT_ROUNDS	Количество раундов bcrypt	12
+CORE_METRICS_ENABLED	Включить сбор метрик	true
+CORE_LOG_LEVEL	Уровень логирования	INFO
+CORE_LOG_FILE	Путь к файлу лога (если не указан, вывод в stdout)	(пусто)
+Лицензия
+MIT
+
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core_package.egg-info\requires.txt
+Содержимое:
+pydantic>=2.0
+python-dotenv>=1.0
+pyjwt>=2.0
+bcrypt>=4.0
+
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core_package.egg-info\SOURCES.txt
+Содержимое:
+LICENSE
+README.md
+pyproject.toml
+src/core/__init__.py
+src/core/base_scenario.py
+src/core/cache.py
+src/core/cli.py
+src/core/config.py
+src/core/decorators.py
+src/core/dto.py
+src/core/exceptions.py
+src/core/logger.py
+src/core/metrics.py
+src/core/scenario_registry.py
+src/core/types.py
+src/core/interfaces/__init__.py
+src/core/interfaces/cache.py
+src/core/interfaces/database.py
+src/core/interfaces/logger.py
+src/core/interfaces/metrics.py
+src/core/interfaces/transactional_database.py
+src/core/templates/adapter_template.py
+src/core/templates/env_template.txt
+src/core/templates/run_example_template.py
+src/core/templates/scenario_template.py
+src/core/templates/structure_template/README.md
+src/core/templates/structure_template/interfaces/__init__.py
+src/core/templates/structure_template/scenarios/__init__.py
+src/core/templates/structure_template/utils/__init__.py
+src/core/utils/__init__.py
+src/core/utils/datetime_utils.py
+src/core/utils/security.py
+src/core/utils/validators.py
+src/core_package.egg-info/PKG-INFO
+src/core_package.egg-info/SOURCES.txt
+src/core_package.egg-info/dependency_links.txt
+src/core_package.egg-info/entry_points.txt
+src/core_package.egg-info/requires.txt
+src/core_package.egg-info/top_level.txt
+tests/test_base_scenario.py
+tests/test_cache.py
+tests/test_cli.py
+tests/test_config.py
+tests/test_decorator.py
+tests/test_decorator_class.py
+tests/test_dto.py
+tests/test_exceptions.py
+tests/test_integration.py
+tests/test_interfaces.py
+tests/test_logger.py
+tests/test_metrics.py
+tests/test_registry.py
+tests/test_utils.py
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\src\core_package.egg-info\top_level.txt
+Содержимое:
+core
+
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_base_scenario.py
+Содержимое:
+"""Тесты базового сценария."""
+
+import pytest
+from core import BaseScenario, IDatabase
+from core.exceptions import CoreError
+
+
+class DummyScenario(BaseScenario):
+    async def execute(self, dto):
+        return {"result": "ok"}
+
+
+def test_base_scenario_instantiation():
+    db = object()
+    scenario = DummyScenario(db=db)
+    assert scenario._db is db
+    assert scenario._cache is None
+    assert scenario._logger is None
+    assert scenario._metrics is None
+
+
+@pytest.mark.asyncio
+async def test_base_scenario_execute():
+    db = object()
+    scenario = DummyScenario(db=db)
+    result = await scenario.execute({})
+    assert result == {"result": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_base_scenario_execute_not_implemented():
+    db = object()
+    base = BaseScenario(db=db)
+    with pytest.raises(NotImplementedError):
+        await base.execute({})
+
+
+def test_no_auto_metrics():
+    """Проверяем, что без явного декоратора метрики не оборачиваются."""
+    class MyScenario(BaseScenario):
+        async def execute(self, dto):
+            return "done"
+
+    assert not hasattr(MyScenario.execute, '_core_metrics_wrapped')
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_cache.py
+Содержимое:
+# tests/test_cache.py
+"""Тесты InMemoryCache."""
+
+import asyncio
+import pytest
+from core import InMemoryCache
+
+
+@pytest.mark.asyncio
+async def test_cache_set_and_get():
+    cache = InMemoryCache()
+    await cache.set("key", "value")
+    result = await cache.get("key")
+    assert result == "value"
+
+
+@pytest.mark.asyncio
+async def test_cache_get_missing():
+    cache = InMemoryCache()
+    result = await cache.get("missing")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_cache_delete():
+    cache = InMemoryCache()
+    await cache.set("key", "value")
+    await cache.delete("key")
+    result = await cache.get("key")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_cache_clear():
+    cache = InMemoryCache()
+    await cache.set("key1", "value1")
+    await cache.set("key2", "value2")
+    await cache.clear()
+    assert await cache.get("key1") is None
+    assert await cache.get("key2") is None
+    assert cache.size == 0
+
+
+@pytest.mark.asyncio
+async def test_cache_ttl():
+    cache = InMemoryCache(ttl_seconds=1)
+    await cache.set("key", "value")
+    assert await cache.get("key") == "value"
+    await asyncio.sleep(1.1)
+    assert await cache.get("key") is None
+
+
+@pytest.mark.asyncio
+async def test_cache_ttl_per_item():
+    cache = InMemoryCache(ttl_seconds=60)
+    await cache.set("key", "value", ttl=1)
+    assert await cache.get("key") == "value"
+    await asyncio.sleep(1.1)
+    assert await cache.get("key") is None
+
+
+@pytest.mark.asyncio
+async def test_cache_max_size():
+    cache = InMemoryCache(max_size=2)
+    await cache.set("a", 1)
+    await cache.set("b", 2)
+    await cache.set("c", 3)
+    assert await cache.get("a") is None
+    assert await cache.get("b") == 2
+    assert await cache.get("c") == 3
+    assert cache.size == 2
+
+
+@pytest.mark.asyncio
+async def test_cache_size_property():
+    cache = InMemoryCache()
+    assert cache.size == 0
+    await cache.set("key", "value")
+    assert cache.size == 1
+    await cache.delete("key")
+    assert cache.size == 0
+
+
+@pytest.mark.asyncio
+async def test_cache_has_lock():
+    cache = InMemoryCache()
+    assert hasattr(cache, "_lock")
+    assert isinstance(cache._lock, asyncio.Lock)
+
+
+@pytest.mark.asyncio
+async def test_cache_concurrent_access():
+    """Проверяем, что при конкурентном доступе не возникает ошибок."""
+    cache = InMemoryCache(max_size=1000)
+    async def worker(i):
+        await cache.set(f"key_{i}", i)
+        return await cache.get(f"key_{i}")
+
+    results = await asyncio.gather(*(worker(i) for i in range(50)))
+    for i, val in enumerate(results):
+        assert val == i
+    assert cache.size == 50
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_cli.py
+Содержимое:
+# tests/test_cli.py
+"""Тесты CLI-команды core-init."""
+
+import os
+import tempfile
+from pathlib import Path
+import sys
+import pytest
+
+
+def test_core_init_creates_files():
+    """Проверяет, что core-init создаёт ожидаемые файлы и папки."""
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        os.chdir(tmpdir)
+        from core.cli import init
+
+        original_argv = sys.argv
+        sys.argv = ["core-init"]
+        try:
+            init()
+        finally:
+            sys.argv = original_argv
+
+        # Корневые файлы
+        assert (Path(tmpdir) / ".core-package.env").exists()
+        assert (Path(tmpdir) / "pyproject.toml").exists()
+        assert (Path(tmpdir) / "README.md").exists()
+
+        # Структура core_project
+        core_project = Path(tmpdir) / "core_project"
+        assert core_project.exists()
+        for folder in ["scenarios", "interfaces", "utils"]:
+            assert (core_project / folder).exists()
+            assert (core_project / folder / "__init__.py").exists()
+            assert (core_project / folder / "README.md").exists()
+        examples = core_project / "examples"
+        assert examples.exists()
+        assert (examples / "example_scenario.py").exists()
+        assert (examples / "event_infra_adapter.py").exists()
+        assert (examples / "main_example.py").exists()  # изменено с run_example.py
+
+
+def test_core_init_does_not_overwrite_without_force():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        os.chdir(tmpdir)
+        from core.cli import init
+
+        original_argv = sys.argv
+        sys.argv = ["core-init"]
+        try:
+            init()
+        finally:
+            sys.argv = original_argv
+
+        env_file = Path(tmpdir) / ".core-package.env"
+        original_content = env_file.read_text(encoding="utf-8")
+        env_file.write_text(original_content + "\n# custom addition\n", encoding="utf-8")
+
+        sys.argv = ["core-init"]
+        try:
+            init()
+        finally:
+            sys.argv = original_argv
+
+        modified = env_file.read_text(encoding="utf-8")
+        assert modified.endswith("# custom addition\n")
+
+
+def test_core_init_overwrites_with_force():
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+        os.chdir(tmpdir)
+        from core.cli import init
+
+        original_argv = sys.argv
+        sys.argv = ["core-init"]
+        try:
+            init()
+        finally:
+            sys.argv = original_argv
+
+        env_file = Path(tmpdir) / ".core-package.env"
+        env_file.write_text("custom content", encoding="utf-8")
+
+        sys.argv = ["core-init", "--force"]
+        try:
+            init()
+        finally:
+            sys.argv = original_argv
+
+        new_content = env_file.read_text(encoding="utf-8")
+        assert new_content != "custom content"
+        assert "# Конфигурация core-package" in new_content
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_config.py
+Содержимое:
+# tests/test_config.py
+"""Тесты конфигурации и переменных окружения."""
+
+import os
+import pytest
+from core import config
+from pathlib import Path
+import importlib
+
+
+def test_get_env_var_default():
+    assert config.get_env_var("NON_EXISTENT_VAR") == ""
+    assert config.get_env_var("NON_EXISTENT_VAR", "default") == "default"
+
+
+def test_get_env_var_with_env(monkeypatch):
+    monkeypatch.setenv("TEST_VAR", "hello")
+    assert config.get_env_var("TEST_VAR") == "hello"
+
+
+def test_get_env_bool_default():
+    assert config.get_env_bool("NON_EXISTENT_BOOL") is False
+    assert config.get_env_bool("NON_EXISTENT_BOOL", default=True) is True
+
+
+def test_get_env_bool_values(monkeypatch):
+    monkeypatch.setenv("BOOL_TRUE", "true")
+    assert config.get_env_bool("BOOL_TRUE") is True
+    monkeypatch.setenv("BOOL_TRUE", "1")
+    assert config.get_env_bool("BOOL_TRUE") is True
+    monkeypatch.setenv("BOOL_TRUE", "yes")
+    assert config.get_env_bool("BOOL_TRUE") is True
+    monkeypatch.setenv("BOOL_TRUE", "on")
+    assert config.get_env_bool("BOOL_TRUE") is True
+
+    monkeypatch.setenv("BOOL_FALSE", "false")
+    assert config.get_env_bool("BOOL_FALSE") is False
+    monkeypatch.setenv("BOOL_FALSE", "0")
+    assert config.get_env_bool("BOOL_FALSE") is False
+    monkeypatch.setenv("BOOL_FALSE", "no")
+    assert config.get_env_bool("BOOL_FALSE") is False
+    monkeypatch.setenv("BOOL_FALSE", "off")
+    assert config.get_env_bool("BOOL_FALSE") is False
+
+
+def test_get_env_int_default():
+    assert config.get_env_int("NON_EXISTENT_INT") == 0
+    assert config.get_env_int("NON_EXISTENT_INT", 42) == 42
+
+
+def test_get_env_int_with_env(monkeypatch):
+    monkeypatch.setenv("INT_VAR", "123")
+    assert config.get_env_int("INT_VAR") == 123
+    monkeypatch.setenv("INT_VAR", "abc")
+    assert config.get_env_int("INT_VAR", 999) == 999
+
+
+def test_get_env_float_default():
+    assert config.get_env_float("NON_EXISTENT_FLOAT") == 0.0
+    assert config.get_env_float("NON_EXISTENT_FLOAT", 3.14) == 3.14
+
+
+def test_get_env_float_with_env(monkeypatch):
+    monkeypatch.setenv("FLOAT_VAR", "3.14")
+    assert config.get_env_float("FLOAT_VAR") == 3.14
+    monkeypatch.setenv("FLOAT_VAR", "abc")
+    assert config.get_env_float("FLOAT_VAR", 2.71) == 2.71
+
+
+def test_load_dotenv_from_cwd(monkeypatch, tmp_path):
+    """Файл .core-package.env в текущей директории загружается."""
+    env_file = tmp_path / ".core-package.env"
+    env_file.write_text("TEST_KEY=test_value\nANOTHER_KEY=another")
+    monkeypatch.chdir(tmp_path)
+    importlib.reload(config)
+    assert config.get_env_var("TEST_KEY") == "test_value"
+    monkeypatch.undo()
+    importlib.reload(config)
+
+
+def test_load_dotenv_from_parent(monkeypatch, tmp_path):
+    """Файл .core-package.env в родительской директории находится."""
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    env_file = parent / ".core-package.env"
+    env_file.write_text("PARENT_KEY=parent_value")
+    child = parent / "child"
+    child.mkdir()
+    monkeypatch.chdir(child)
+    importlib.reload(config)
+    assert config.get_env_var("PARENT_KEY") == "parent_value"
+    monkeypatch.undo()
+    importlib.reload(config)
+
+
+def test_load_dotenv_explicit_path(monkeypatch, tmp_path):
+    """Явный путь через CORE_ENV_PATH имеет приоритет."""
+    env_file = tmp_path / "custom.env"
+    env_file.write_text("EXPLICIT_KEY=explicit_value")
+    monkeypatch.setenv("CORE_ENV_PATH", str(env_file))
+    monkeypatch.chdir(tmp_path)  # на всякий случай
+    importlib.reload(config)
+    assert config.get_env_var("EXPLICIT_KEY") == "explicit_value"
+    monkeypatch.undo()
+    importlib.reload(config)
+
+
+def test_load_dotenv_explicit_path_nonexistent(monkeypatch, tmp_path):
+    """Если CORE_ENV_PATH указывает на несуществующий файл, загрузки не происходит."""
+    monkeypatch.setenv("CORE_ENV_PATH", str(tmp_path / "nonexistent.env"))
+    monkeypatch.chdir(tmp_path)
+    importlib.reload(config)
+    # Переменная из несуществующего файла не должна быть установлена
+    assert config.get_env_var("SHOULD_NOT_EXIST") == ""
+    monkeypatch.undo()
+    importlib.reload(config)
+
+
+def test_no_env_file(monkeypatch, tmp_path):
+    """Если файла нет, переменные окружения не загружаются."""
+    monkeypatch.delenv("CORE_ENV_PATH", raising=False)
+    monkeypatch.chdir(tmp_path)
+    importlib.reload(config)
+    # Не должно быть переменной из несуществующего файла
+    assert config.get_env_var("NON_EXISTENT_FROM_FILE") == ""
+    monkeypatch.undo()
+    importlib.reload(config)
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_decorator.py
+Содержимое:
+# tests/test_decorator.py
+"""Тесты декоратора метрик."""
+import os
+import pytest
+from core import track_metrics, get_metrics, InMemoryMetrics
+
+
+@pytest.mark.asyncio
+async def test_track_metrics_success():
+    metrics = get_metrics()
+    metrics.clear()
+
+    @track_metrics("test_decorator")
+    async def dummy_func():
+        return "ok"
+
+    result = await dummy_func()
+    assert result == "ok"
+
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].name == "test_decorator"
+    assert stats[0].calls == 1
+    assert stats[0].errors == 0
+    assert stats[0].total_time_ms > 0
+
+
+@pytest.mark.asyncio
+async def test_track_metrics_error():
+    metrics = get_metrics()
+    metrics.clear()
+
+    @track_metrics("test_decorator")
+    async def failing_func():
+        raise ValueError("Test error")
+
+    with pytest.raises(ValueError):
+        await failing_func()
+
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].calls == 1
+    assert stats[0].errors == 1
+
+
+@pytest.mark.asyncio
+async def test_track_metrics_uses_passed_metrics():
+    """Проверяем, что декоратор использует self._metrics, а не глобальный."""
+    global_metrics = get_metrics()
+    global_metrics.clear()
+    local_metrics = InMemoryMetrics()
+
+    class Dummy:
+        def __init__(self):
+            self._metrics = local_metrics
+
+        @track_metrics("local_metric")
+        async def method(self):
+            return "done"
+
+    dummy = Dummy()
+    await dummy.method()
+
+    # Глобальные метрики не должны измениться
+    assert len(global_metrics.get_stats()) == 0
+    # Локальные должны содержать запись
+    stats = local_metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].name == "local_metric"
+    assert stats[0].calls == 1
+
+
+@pytest.mark.asyncio
+async def test_track_metrics_disabled(monkeypatch):
+    monkeypatch.setenv("CORE_METRICS_ENABLED", "false")
+    import importlib
+    import core.metrics
+    importlib.reload(core.metrics)
+
+    metrics = get_metrics()
+    metrics.clear()
+
+    @track_metrics("test_disabled")
+    async def dummy_func():
+        return "ok"
+
+    result = await dummy_func()
+    assert result == "ok"
+    assert len(metrics.get_stats()) == 0
+
+    monkeypatch.undo()
+    importlib.reload(core.metrics)
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_decorator_class.py
+Содержимое:
+# tests/test_decorator_class.py
+"""Тесты декоратора класса tracked_scenario."""
+
+import pytest
+from core import BaseScenario, tracked_scenario, get_metrics, InMemoryMetrics
+from core.interfaces import IDatabase
+
+
+class DummyDB(IDatabase):
+    async def create(self, entity, data): return {}
+    async def read(self, entity, id): return None
+    async def update(self, entity, id, data): return {}
+    async def delete(self, entity, id): return True
+    async def custom(self, sql, params): return []
+
+
+@pytest.mark.asyncio
+async def test_tracked_scenario_records_metrics():
+    metrics = get_metrics()
+    metrics.clear()
+
+    @tracked_scenario("test_scenario")
+    class MyScenario(BaseScenario):
+        async def execute(self, dto):
+            return {"ok": True}
+
+    db = DummyDB()
+    scenario = MyScenario(db=db)
+    result = await scenario.execute({"test": 1})
+    assert result == {"ok": True}
+
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].name == "test_scenario"
+    assert stats[0].calls == 1
+    assert stats[0].errors == 0
+
+
+@pytest.mark.asyncio
+async def test_tracked_scenario_records_errors():
+    metrics = get_metrics()
+    metrics.clear()
+
+    @tracked_scenario("failing_scenario")
+    class FailingScenario(BaseScenario):
+        async def execute(self, dto):
+            raise ValueError("Test error")
+
+    db = DummyDB()
+    scenario = FailingScenario(db=db)
+    with pytest.raises(ValueError, match="Test error"):
+        await scenario.execute({})
+
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].name == "failing_scenario"
+    assert stats[0].calls == 1
+    assert stats[0].errors == 1
+
+
+@pytest.mark.asyncio
+async def test_tracked_scenario_uses_passed_metrics():
+    """При передаче metrics в конструктор используется именно он."""
+    global_metrics = get_metrics()
+    global_metrics.clear()
+    local_metrics = InMemoryMetrics()
+
+    @tracked_scenario("scenario_with_local_metrics")
+    class MyScenario(BaseScenario):
+        async def execute(self, dto):
+            return {"ok": True}
+
+    db = DummyDB()
+    scenario = MyScenario(db=db, metrics=local_metrics)
+    await scenario.execute({})
+
+    assert len(global_metrics.get_stats()) == 0
+    stats = local_metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].name == "scenario_with_local_metrics"
+
+
+@pytest.mark.asyncio
+async def test_tracked_scenario_disabled(monkeypatch):
+    monkeypatch.setenv("CORE_METRICS_ENABLED", "false")
+    import importlib
+    import core.metrics
+    importlib.reload(core.metrics)
+
+    metrics = get_metrics()
+    metrics.clear()
+
+    @tracked_scenario("disabled_scenario")
+    class MyScenario(BaseScenario):
+        async def execute(self, dto):
+            return {"ok": True}
+
+    db = DummyDB()
+    scenario = MyScenario(db=db)
+    result = await scenario.execute({})
+    assert result == {"ok": True}
+    assert len(metrics.get_stats()) == 0
+
+    monkeypatch.undo()
+    importlib.reload(core.metrics)
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_dto.py
+Содержимое:
+# tests/test_dto.py
+"""Тесты базового DTO."""
+
+from core import BaseDTO
+
+
+def test_base_dto_defaults():
+    dto = BaseDTO()
+    assert dto.access_token is None
+    assert dto.limit == 100
+    assert dto.offset == 0
+
+
+def test_base_dto_custom_values():
+    dto = BaseDTO(access_token="test_token", limit=50, offset=10)
+    assert dto.access_token == "test_token"
+    assert dto.limit == 50
+    assert dto.offset == 10
+
+
+def test_base_dto_validation():
+    # limit должен быть от 1 до 1000
+    dto = BaseDTO(limit=500)
+    assert dto.limit == 500
+
+    # Проверяем, что Pydantic сам валидирует
+    import pytest
+    with pytest.raises(ValueError):
+        BaseDTO(limit=0)
+    with pytest.raises(ValueError):
+        BaseDTO(limit=1001)
+    with pytest.raises(ValueError):
+        BaseDTO(offset=-1)
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_exceptions.py
+Содержимое:
+# tests/test_exceptions.py
+"""Тесты исключений core-package."""
+
+import pytest
+from core import CoreError, NotFoundError, ValidationError, ConflictError
+
+
+def test_exceptions_inheritance():
+    assert issubclass(NotFoundError, CoreError)
+    assert issubclass(ValidationError, CoreError)
+    assert issubclass(ConflictError, CoreError)
+
+
+def test_core_error_with_attributes():
+    err = CoreError("Some error", code=100, http_status=500)
+    assert str(err) == "Some error"
+    assert err.code == 100
+    assert err.http_status == 500
+
+def test_core_error_defaults():
+    err = CoreError("Default")
+    assert err.code is None
+    assert err.http_status is None
+
+def test_not_found_error_defaults():
+    err = NotFoundError("Not found")
+    assert err.http_status == 404
+    assert err.code is None
+
+def test_not_found_error_with_code():
+    err = NotFoundError("Not found", code=1102)
+    assert err.code == 1102
+    assert err.http_status == 404
+
+def test_validation_error_defaults():
+    err = ValidationError("Invalid")
+    assert err.http_status == 422
+    assert err.code is None
+
+def test_conflict_error_defaults():
+    err = ConflictError("Conflict")
+    assert err.http_status == 409
+    assert err.code is None
+
+def test_exceptions_instantiation_with_raise():
+    with pytest.raises(NotFoundError, match="Not found"):
+        raise NotFoundError("Not found")
+    with pytest.raises(ValidationError, match="Invalid"):
+        raise ValidationError("Invalid")
+    with pytest.raises(ConflictError, match="Conflict"):
+        raise ConflictError("Conflict")
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_integration.py
+Содержимое:
+# tests/test_integration.py
+"""Интеграционные тесты для проверки работоспособности примера."""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+def test_run_example_works(tmp_path, monkeypatch):
+    """Проверяет, что пример main_example.py выполняется без ошибок."""
+    monkeypatch.chdir(tmp_path)
+
+    from core.cli import init
+    original_argv = sys.argv
+    sys.argv = ["core-init", "--force"]
+    try:
+        init()
+    finally:
+        sys.argv = original_argv
+
+    # Файл называется main_example.py
+    example = tmp_path / "core_project" / "examples" / "main_example.py"
+    assert example.exists()
+
+    result = subprocess.run(
+        [sys.executable, str(example)],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+    assert result.returncode == 0, f"stderr: {result.stderr}"
+    assert "ЗАПУСК ПРИМЕРА core-package" in result.stdout
+    assert "Ответ: Hello, Alice!" in result.stdout
+    assert "Ответ: Hello, Bob!" in result.stdout
+    assert "МЕТРИКИ ВЫПОЛНЕНИЯ" in result.stdout
+    # Метрика greeting_calls появляется, так как increment вызывается
+    assert "greeting_calls" in result.stdout
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_interfaces.py
+Содержимое:
+# tests/test_interfaces.py
+"""Тесты интерфейсов core-package."""
+
+import pytest
+from core.interfaces import IDatabase, ICache, ILogger, IMetrics, ITransactionalDatabase
+
+
+def test_idatabase_protocol():
+    assert hasattr(IDatabase, "create")
+    assert hasattr(IDatabase, "read")
+    assert hasattr(IDatabase, "update")
+    assert hasattr(IDatabase, "delete")
+    assert hasattr(IDatabase, "custom")
+
+
+def test_icache_protocol():
+    assert hasattr(ICache, "get")
+    assert hasattr(ICache, "set")
+    assert hasattr(ICache, "delete")
+    assert hasattr(ICache, "clear")
+
+
+def test_ilogger_protocol():
+    assert hasattr(ILogger, "debug")
+    assert hasattr(ILogger, "info")
+    assert hasattr(ILogger, "warning")
+    assert hasattr(ILogger, "error")
+    assert hasattr(ILogger, "critical")
+
+
+def test_imetrics_protocol():
+    assert hasattr(IMetrics, "record")
+    assert hasattr(IMetrics, "increment")
+
+
+def test_itransactional_database_protocol():
+    # Проверяем наличие всех методов IDatabase
+    for method in ["create", "read", "update", "delete", "custom"]:
+        assert hasattr(ITransactionalDatabase, method)
+    # Проверяем дополнительные методы транзакций
+    assert hasattr(ITransactionalDatabase, "begin_transaction")
+    assert hasattr(ITransactionalDatabase, "commit_transaction")
+    assert hasattr(ITransactionalDatabase, "rollback_transaction")
+    assert hasattr(ITransactionalDatabase, "transaction")
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_logger.py
+Содержимое:
+# tests/test_logger.py
+"""Тесты встроенного логгера."""
+import os
+import pytest
+from core import ConsoleLogger
+
+
+@pytest.mark.asyncio
+async def test_console_logger_creation():
+    logger = ConsoleLogger("test_logger_creation")
+    # Уровень по умолчанию не установлен (0 = NOTSET), обработчик добавлен
+    assert logger._logger.name == "test_logger_creation"
+    assert logger._logger.level == 0
+    assert len(logger._logger.handlers) == 1
+
+
+@pytest.mark.asyncio
+async def test_console_logger_methods_set_level():
+    logger = ConsoleLogger("test_logger_methods")
+    await logger.info("Info message")
+    # После вызова уровень должен стать INFO (20)
+    assert logger._logger.level == 20
+    await logger.debug("Debug message")
+    await logger.warning("Warning message")
+    await logger.error("Error message")
+    await logger.critical("Critical message")
+    # Ничего не падает
+    assert True
+
+
+@pytest.mark.asyncio
+async def test_logger_custom_level_dynamic(monkeypatch):
+    # Устанавливаем DEBUG
+    monkeypatch.setenv("CORE_LOG_LEVEL", "DEBUG")
+    logger = ConsoleLogger("test_custom_dynamic")
+    await logger.debug("Debug message")
+    assert logger._logger.level == 10
+    # Меняем на WARNING
+    monkeypatch.setenv("CORE_LOG_LEVEL", "WARNING")
+    await logger.warning("Warning message")
+    assert logger._logger.level == 30
+    monkeypatch.undo()
+
+
+@pytest.mark.asyncio
+async def test_no_duplicate_handlers():
+    logger1 = ConsoleLogger("test_no_dup")
+    logger2 = ConsoleLogger("test_no_dup")
+    # Оба экземпляра используют один и тот же логгер, обработчик добавляется только раз
+    assert len(logger1._logger.handlers) == 1
+    assert len(logger2._logger.handlers) == 1
+
+
+@pytest.mark.asyncio
+async def test_file_handler(monkeypatch, tmp_path):
+    """Проверяем, что при указании CORE_LOG_FILE используется FileHandler."""
+    log_file = tmp_path / "test.log"
+    monkeypatch.setenv("CORE_LOG_FILE", str(log_file))
+    logger = ConsoleLogger("file_logger")
+    await logger.info("File message")
+
+    # Проверяем, что файл создан и содержит сообщение
+    assert log_file.exists()
+    content = log_file.read_text(encoding="utf-8")
+    assert "File message" in content
+
+    # Проверяем, что обработчик действительно FileHandler
+    handler = logger._logger.handlers[0]
+    assert isinstance(handler, __import__('logging').FileHandler)
+
+    monkeypatch.delenv("CORE_LOG_FILE", raising=False)
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_metrics.py
+Содержимое:
+# tests/test_metrics.py
+"""Тесты встроенных метрик."""
+
+import pytest
+from core import InMemoryMetrics, get_metrics
+
+
+@pytest.mark.asyncio
+async def test_metrics_record():
+    metrics = InMemoryMetrics()
+    await metrics.record("test_scenario", 150.5, scenario="test_scenario")
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].name == "test_scenario"
+    assert stats[0].calls == 1
+    assert stats[0].errors == 0
+    assert stats[0].total_time_ms == 150.5
+    assert stats[0].avg_time_ms == 150.5
+
+
+@pytest.mark.asyncio
+async def test_metrics_record_with_error():
+    """Проверяем, что при записи с error=True увеличивается счётчик ошибок."""
+    metrics = InMemoryMetrics()
+    await metrics.record("test_scenario", 100.0, scenario="test_scenario", error=True)
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].calls == 1
+    assert stats[0].errors == 1
+
+
+@pytest.mark.asyncio
+async def test_metrics_increment_error():
+    metrics = InMemoryMetrics()
+    await metrics.increment("test_scenario", scenario="test_scenario", error=True)
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].calls == 0  # increment не увеличивает calls
+    assert stats[0].errors == 1
+
+
+@pytest.mark.asyncio
+async def test_metrics_increment_without_error():
+    """Проверяем, что increment без метки error не увеличивает счётчик ошибок."""
+    metrics = InMemoryMetrics()
+    await metrics.increment("test_scenario", scenario="test_scenario")
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].calls == 0
+    assert stats[0].errors == 0
+
+
+@pytest.mark.asyncio
+async def test_metrics_clear():
+    metrics = InMemoryMetrics()
+    await metrics.record("test", 1.0)
+    assert len(metrics.get_stats()) == 1
+    metrics.clear()
+    assert len(metrics.get_stats()) == 0
+
+
+@pytest.mark.asyncio
+async def test_get_metrics_singleton():
+    m1 = get_metrics()
+    m2 = get_metrics()
+    assert m1 is m2
+
+
+@pytest.mark.asyncio
+async def test_metrics_disabled(monkeypatch):
+    """При выключенных метриках record и increment не должны ничего записывать."""
+    monkeypatch.setenv("CORE_METRICS_ENABLED", "false")
+    metrics = InMemoryMetrics()  # _enabled будет False
+    await metrics.record("test_scenario", 100.0, scenario="test_scenario")
+    await metrics.increment("test_scenario", scenario="test_scenario", error=True)
+    assert len(metrics.get_stats()) == 0
+    monkeypatch.undo()
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_registry.py
+Содержимое:
+"""Тесты реестра сценариев."""
+
+import pytest
+import logging
+from core import ScenarioRegistry, BaseScenario
+
+
+class DummyScenario(BaseScenario):
+    async def execute(self, dto):
+        return {"ok": True}
+
+
+@pytest.fixture(autouse=True)
+def reset_registry():
+    """Перед каждым тестом очищаем реестр и сбрасываем флаг автодискаверинга."""
+    ScenarioRegistry._scenarios.clear()
+    ScenarioRegistry._autodiscovered = False
+    yield
+    ScenarioRegistry._scenarios.clear()
+    ScenarioRegistry._autodiscovered = False
+
+
+def test_register_and_get():
+    ScenarioRegistry.register("dummy", DummyScenario)
+    deps = {"db": object()}
+    scenario = ScenarioRegistry.get("dummy", deps)
+    assert isinstance(scenario, DummyScenario)
+
+
+def test_register_duplicate():
+    ScenarioRegistry.register("dummy", DummyScenario)
+    with pytest.raises(ValueError, match="already registered"):
+        ScenarioRegistry.register("dummy", DummyScenario)
+
+
+def test_get_not_registered():
+    with pytest.raises(ValueError, match="not registered"):
+        ScenarioRegistry.get("unknown", {})
+
+
+def test_list_scenarios():
+    ScenarioRegistry.register("dummy", DummyScenario)
+    scenarios = ScenarioRegistry.list_scenarios()
+    assert "dummy" in scenarios
+    assert scenarios["dummy"] == DummyScenario
+
+
+def test_autodiscover_success(monkeypatch):
+    class MockEntry:
+        name = "dummy"
+        def load(self):
+            return DummyScenario
+
+    class MockEntryPoints:
+        def select(self, group):
+            assert group == "core.scenarios"
+            return [MockEntry()]
+
+    monkeypatch.setattr("importlib.metadata.entry_points", lambda: MockEntryPoints())
+    ScenarioRegistry.autodiscover()
+    assert "dummy" in ScenarioRegistry.list_scenarios()
+
+
+def test_autodiscover_old_python(monkeypatch):
+    class MockEntry:
+        name = "dummy_old"
+        def load(self):
+            return DummyScenario
+
+    class MockEntryPoints(dict):
+        def get(self, group, default):
+            if group == "core.scenarios":
+                return [MockEntry()]
+            return default
+
+    monkeypatch.setattr("importlib.metadata.entry_points", lambda: MockEntryPoints())
+    ScenarioRegistry.autodiscover()
+    assert "dummy_old" in ScenarioRegistry.list_scenarios()
+
+
+def test_autodiscover_entry_point_error(monkeypatch, caplog):
+    class BadEntry:
+        name = "bad"
+        def load(self):
+            raise ImportError("Cannot import")
+
+    class MockEntryPoints:
+        def select(self, group):
+            return [BadEntry()]
+
+    monkeypatch.setattr("importlib.metadata.entry_points", lambda: MockEntryPoints())
+    with caplog.at_level(logging.WARNING):
+        ScenarioRegistry.autodiscover()
+    assert "Failed to load scenario from entry point" in caplog.text
+    assert "bad" not in ScenarioRegistry.list_scenarios()
+
+
+def test_autodiscover_general_error(monkeypatch, caplog):
+    def broken_entry_points():
+        raise RuntimeError("metadata unavailable")
+
+    monkeypatch.setattr("importlib.metadata.entry_points", broken_entry_points)
+    with caplog.at_level(logging.WARNING):
+        ScenarioRegistry.autodiscover()
+    assert "Failed to load entry points" in caplog.text
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\test_utils.py
+Содержимое:
+"""Тесты утилит core-package."""
+
+import pytest
+from datetime import datetime, timezone
+from core.utils import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    extract_token_info,
+    parse_iso_datetime,
+    normalize_timezone,
+    is_datetime_in_past,
+    format_iso,
+    validate_pagination,
+    validate_required,
+    validate_email,
+)
+from core.exceptions import ValidationError
+
+
+@pytest.mark.asyncio
+async def test_password_hashing():
+    password = "test123"
+    hashed = await hash_password(password)
+    assert hashed != password
+    assert await verify_password(password, hashed) is True
+    assert await verify_password("wrong", hashed) is False
+
+
+def test_create_access_token_and_decode():
+    token = create_access_token(user_id=42, role="admin", secret="mysecret", expires_in=5)
+    payload = decode_token(token, secret="mysecret")
+    assert payload["sub"] == "42"
+    assert payload["role"] == "admin"
+    assert payload["type"] == "access"
+
+
+def test_create_refresh_token_and_decode():
+    token = create_refresh_token(user_id=42, secret="mysecret", expires_in=1)
+    payload = decode_token(token, secret="mysecret")
+    assert payload["sub"] == "42"
+    assert payload["type"] == "refresh"
+
+
+def test_extract_token_info():
+    token = create_access_token(user_id=7, role="student", secret="secret")
+    info = extract_token_info(token, secret="secret")
+    assert info.user_id == 7
+    assert info.role == "student"
+
+
+def test_decode_token_invalid():
+    with pytest.raises(Exception):
+        decode_token("invalid.token.string", secret="secret")
+
+
+def test_parse_iso_datetime():
+    dt = parse_iso_datetime("2026-01-01T10:00:00")
+    assert dt.year == 2026
+    assert dt.month == 1
+    assert dt.day == 1
+    assert dt.hour == 10
+    assert dt.minute == 0
+
+
+def test_parse_iso_datetime_with_space():
+    """Поддержка разделителя пробелом вместо 'T'."""
+    dt = parse_iso_datetime("2026-01-01 10:00:00")
+    assert dt.hour == 10
+    assert dt.minute == 0
+
+
+def test_parse_iso_datetime_without_seconds():
+    """Поддержка формата без секунд (добавляется :00)."""
+    dt = parse_iso_datetime("2026-01-01T10:00")
+    assert dt.hour == 10
+    assert dt.minute == 0
+    assert dt.second == 0
+
+
+def test_parse_iso_datetime_invalid():
+    with pytest.raises(ValueError):
+        parse_iso_datetime("invalid")
+
+
+def test_parse_iso_datetime_with_timezone():
+    dt = parse_iso_datetime("2026-01-01T10:00:00+03:00")
+    # Должен быть приведён к UTC
+    assert dt.hour == 7  # 10:00 +03:00 = 07:00 UTC
+
+
+def test_normalize_timezone():
+    dt = datetime(2026, 1, 1, 10, 0, 0)
+    normalized = normalize_timezone(dt, offset_hours=3)
+    assert normalized.hour == 13
+
+
+def test_normalize_timezone_with_aware_datetime():
+    """Если datetime уже содержит tzinfo, он приводится к UTC перед смещением."""
+    dt = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+    normalized = normalize_timezone(dt, offset_hours=3)
+    assert normalized.hour == 13
+
+
+def test_is_datetime_in_past():
+    past = datetime(2000, 1, 1)
+    now = datetime(2026, 1, 1)
+    assert is_datetime_in_past(past, now) is True
+    future = datetime(2030, 1, 1)
+    assert is_datetime_in_past(future, now) is False
+
+
+def test_is_datetime_in_past_without_now():
+    """Проверяем вызов без явного now (используется текущее время)."""
+    past = datetime(2000, 1, 1)
+    assert is_datetime_in_past(past) is True
+    future = datetime(2030, 1, 1)
+    assert is_datetime_in_past(future) is False
+
+
+def test_format_iso():
+    dt = datetime(2026, 1, 1, 10, 0, 0)
+    formatted = format_iso(dt)
+    assert formatted == "2026-01-01T10:00:00"
+
+    formatted_z = format_iso(dt, with_timezone=True)
+    assert formatted_z == "2026-01-01T10:00:00Z"
+
+
+def test_validate_pagination():
+    validate_pagination(10, 0)  # Должно пройти
+    with pytest.raises(ValidationError):
+        validate_pagination(0, 0)
+    with pytest.raises(ValidationError):
+        validate_pagination(1001, 0)
+    with pytest.raises(ValidationError):
+        validate_pagination(10, -1)
+
+
+def test_validate_required():
+    validate_required("test", "field")  # Должно пройти
+    with pytest.raises(ValidationError):
+        validate_required(None, "field")
+    with pytest.raises(ValidationError):
+        validate_required("", "field")
+
+
+def test_validate_email():
+    validate_email("test@example.com")  # Должно пройти
+    with pytest.raises(ValidationError):
+        validate_email("invalid")
+
+Файл: C:\Users\Arseniy\Desktop\Package_core_v1_080926\root_folder_core_package\core-package\tests\__init__.py
+Содержимое:
+"""Тесты core-package."""
+
+
+Всего обработано файлов: 62

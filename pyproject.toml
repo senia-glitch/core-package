@@ -1,0 +1,30 @@
+# pyproject.toml
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "core-package"
+version = "0.1.0"
+description = "Платформа для построения бизнес-сценариев с абстракциями и утилитами"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your@email.com"}
+]
+dependencies = [
+    "pydantic>=2.0",
+    "python-dotenv>=1.0",
+    "pyjwt>=2.0",
+    "bcrypt>=4.0",
+]
+
+[project.scripts]
+core-init = "core.cli:init"
+
+[project.entry-points."core.scenarios"]
+# Здесь проекты могут регистрировать свои сценарии
+
+[tool.setuptools.package-data]
+core = ["templates/*", "templates/structure_template/*", "templates/structure_template/**/*"]
