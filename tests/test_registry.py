@@ -1,8 +1,11 @@
 """Тесты реестра сценариев."""
 
-import pytest
 import logging
-from core import ScenarioRegistry, BaseScenario
+from pathlib import Path
+
+import pytest
+
+from core import BaseScenario, ScenarioRegistry, register_scenario
 
 
 class DummyScenario(BaseScenario):
@@ -12,12 +15,15 @@ class DummyScenario(BaseScenario):
 
 @pytest.fixture(autouse=True)
 def reset_registry():
-    """Перед каждым тестом очищаем реестр и сбрасываем флаг автодискаверинга."""
+    """Перед каждым тестом очищаем реестр."""
     ScenarioRegistry._scenarios.clear()
-    ScenarioRegistry._autodiscovered = False
     yield
     ScenarioRegistry._scenarios.clear()
-    ScenarioRegistry._autodiscovered = False
+
+
+# ---------------------------------------------------------------------------
+# register / get / list
+# ---------------------------------------------------------------------------
 
 
 def test_register_and_get():
@@ -45,61 +51,134 @@ def test_list_scenarios():
     assert scenarios["dummy"] == DummyScenario
 
 
-def test_autodiscover_success(monkeypatch):
-    class MockEntry:
-        name = "dummy"
-        def load(self):
-            return DummyScenario
-
-    class MockEntryPoints:
-        def select(self, group):
-            assert group == "core.scenarios"
-            return [MockEntry()]
-
-    monkeypatch.setattr("importlib.metadata.entry_points", lambda: MockEntryPoints())
-    ScenarioRegistry.autodiscover()
-    assert "dummy" in ScenarioRegistry.list_scenarios()
+# ---------------------------------------------------------------------------
+# @register_scenario
+# ---------------------------------------------------------------------------
 
 
-def test_autodiscover_old_python(monkeypatch):
-    class MockEntry:
-        name = "dummy_old"
-        def load(self):
-            return DummyScenario
+def test_register_scenario_decorator():
+    @register_scenario("decorated")
+    class Decorated(DummyScenario):
+        pass
 
-    class MockEntryPoints(dict):
-        def get(self, group, default):
-            if group == "core.scenarios":
-                return [MockEntry()]
-            return default
-
-    monkeypatch.setattr("importlib.metadata.entry_points", lambda: MockEntryPoints())
-    ScenarioRegistry.autodiscover()
-    assert "dummy_old" in ScenarioRegistry.list_scenarios()
+    assert "decorated" in ScenarioRegistry.list_scenarios()
+    assert ScenarioRegistry.list_scenarios()["decorated"] is Decorated
 
 
-def test_autodiscover_entry_point_error(monkeypatch, caplog):
-    class BadEntry:
-        name = "bad"
-        def load(self):
-            raise ImportError("Cannot import")
+def test_register_scenario_duplicate():
+    @register_scenario("dup")
+    class First(DummyScenario):
+        pass
 
-    class MockEntryPoints:
-        def select(self, group):
-            return [BadEntry()]
+    with pytest.raises(ValueError, match="already registered"):
+        @register_scenario("dup")
+        class Second(DummyScenario):
+            pass
 
-    monkeypatch.setattr("importlib.metadata.entry_points", lambda: MockEntryPoints())
+
+def test_register_scenario_returns_class():
+    """Декоратор должен вернуть тот же класс, что получил."""
+    class Original(DummyScenario):
+        pass
+
+    returned = register_scenario("orig")(Original)
+    assert returned is Original
+
+
+# ---------------------------------------------------------------------------
+# discover
+# ---------------------------------------------------------------------------
+
+
+def _make_pkg(tmp_path: Path, name: str) -> Path:
+    """Создаёт временный пакет с __init__.py и возвращает путь к нему."""
+    pkg = tmp_path / name
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    return pkg
+
+
+def test_discover_missing_package():
+    """Несуществующий пакет не падает, возвращает пустой список."""
+    loaded = ScenarioRegistry.discover("definitely.not.a.real.package.xyz")
+    assert loaded == []
+
+
+def test_discover_not_a_package(tmp_path, monkeypatch):
+    """Модуль без __path__ (не пакет) — warning, пустой список."""
+    # sys.path временно добавим, чтобы importlib нашёл модуль
+    (tmp_path / "solo_module.py").write_text("X = 1\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    loaded = ScenarioRegistry.discover("solo_module")
+    assert loaded == []
+
+
+def test_discover_loads_modules(tmp_path, monkeypatch, caplog):
+    """Пакет с несколькими модулями: все импортируются, декораторы срабатывают."""
+    pkg = _make_pkg(tmp_path, "sample_scenarios")
+    (pkg / "hello.py").write_text(
+        "from core import BaseScenario, register_scenario\n"
+        "class DummyDB: pass\n"
+        "@register_scenario('hello')\n"
+        "class Hello(BaseScenario):\n"
+        "    async def execute(self, dto): return {'ok': True}\n",
+        encoding="utf-8",
+    )
+    (pkg / "bye.py").write_text(
+        "from core import BaseScenario, register_scenario\n"
+        "@register_scenario('bye')\n"
+        "class Bye(BaseScenario):\n"
+        "    async def execute(self, dto): return {'ok': True}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    loaded = ScenarioRegistry.discover("sample_scenarios")
+
+    assert "sample_scenarios.hello" in loaded
+    assert "sample_scenarios.bye" in loaded
+    assert "hello" in ScenarioRegistry.list_scenarios()
+    assert "bye" in ScenarioRegistry.list_scenarios()
+
+
+def test_discover_skips_underscore_files(tmp_path, monkeypatch):
+    """Файлы, начинающиеся с _, не импортируются."""
+    pkg = _make_pkg(tmp_path, "with_private")
+    (pkg / "_private.py").write_text("raise RuntimeError('must not load')\n", encoding="utf-8")
+    (pkg / "public.py").write_text(
+        "from core import BaseScenario, register_scenario\n"
+        "@register_scenario('pub')\n"
+        "class Pub(BaseScenario):\n"
+        "    async def execute(self, dto): return {'ok': True}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    loaded = ScenarioRegistry.discover("with_private")
+
+    assert "with_private.public" in loaded
+    assert "with_private._private" not in loaded
+    assert "pub" in ScenarioRegistry.list_scenarios()
+
+
+def test_discover_warns_on_bad_module(tmp_path, monkeypatch, caplog):
+    """Ошибка в одном модуле не ломает загрузку остальных."""
+    pkg = _make_pkg(tmp_path, "broken_pkg")
+    (pkg / "good.py").write_text(
+        "from core import BaseScenario, register_scenario\n"
+        "@register_scenario('good')\n"
+        "class Good(BaseScenario):\n"
+        "    async def execute(self, dto): return {'ok': True}\n",
+        encoding="utf-8",
+    )
+    (pkg / "bad.py").write_text("raise RuntimeError('boom')\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+
     with caplog.at_level(logging.WARNING):
-        ScenarioRegistry.autodiscover()
-    assert "Failed to load scenario from entry point" in caplog.text
-    assert "bad" not in ScenarioRegistry.list_scenarios()
+        loaded = ScenarioRegistry.discover("broken_pkg")
 
-
-def test_autodiscover_general_error(monkeypatch, caplog):
-    def broken_entry_points():
-        raise RuntimeError("metadata unavailable")
-
-    monkeypatch.setattr("importlib.metadata.entry_points", broken_entry_points)
-    with caplog.at_level(logging.WARNING):
-        ScenarioRegistry.autodiscover()
-    assert "Failed to load entry points" in caplog.text
+    assert "broken_pkg.good" in loaded
+    assert "broken_pkg.bad" not in loaded
+    assert "good" in ScenarioRegistry.list_scenarios()
+    assert any("broken_pkg.bad" in rec.message for rec in caplog.records)

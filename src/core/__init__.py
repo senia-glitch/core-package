@@ -5,7 +5,7 @@
 - BaseScenario, ScenarioRegistry
 - Исключения, утилиты
 - Встроенные логгер, метрики и кеш
-- Декораторы для сбора метрик
+- Декораторы: track_metrics, tracked_scenario, register_scenario
 """
 
 from .interfaces import IDatabase, ICache, ILogger, IMetrics, ITransactionalDatabase
@@ -17,7 +17,7 @@ from . import utils
 from .logger import ConsoleLogger
 from .metrics import InMemoryMetrics, get_metrics
 from .cache import InMemoryCache
-from .decorators import track_metrics, tracked_scenario
+from .decorators import track_metrics, tracked_scenario, register_scenario
 
 __all__ = [
     "IDatabase",
@@ -39,4 +39,5 @@ __all__ = [
     "get_metrics",
     "track_metrics",
     "tracked_scenario",
+    "register_scenario",
 ]

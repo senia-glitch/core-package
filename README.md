@@ -14,12 +14,13 @@
 
 ## Возможности
 
-- **Гексагональная архитектура** – чёткое разделение интерфейсов и реализаций.
-- **Автоматический сбор метрик** – декораторы `@track_metrics` и `@tracked_scenario`.
+- **Гексагональная архитектура** — чёткое разделение интерфейсов и реализаций.
+- **Автоматический сбор метрик** — декораторы `@track_metrics` и `@tracked_scenario`.
+- **Регистрация сценариев декоратором** — `@register_scenario("name")`.
+- **Автозагрузка сценариев из пакета** — `ScenarioRegistry.discover("app.scenarios")`.
 - **Потокобезопасный in-memory кэш** с TTL и ограничением размера.
-- **Расширяемая система ошибок** – базовый `CoreError` с HTTP-статусами и кодами.
-- **Гибкая конфигурация** – загрузка из `.core-package.env`, поиск вверх по дереву каталогов, поддержка `CORE_ENV_PATH`.
-- **Автодискаверинг сценариев** через entry point `core.scenarios`.
+- **Расширяемая система ошибок** — базовый `CoreError` с HTTP-статусами и кодами.
+- **Гибкая конфигурация** — загрузка из `.core-package.env`, поиск вверх по дереву каталогов, поддержка `CORE_ENV_PATH`.
 
 ## Быстрый старт
 
@@ -33,17 +34,15 @@ bash
 core-init
 Будут созданы:
 
-.core-package.env – файл с переменными окружения
+.core-package.env — файл с переменными окружения
 
-scenarios/, interfaces/, utils/ – папки для вашего кода
+scenarios/, interfaces/, utils/ — папки для вашего кода
 
-examples/ – примеры использования
+examples/ — примеры использования
 
-pyproject.toml – базовый файл проекта (если отсутствует)
+pyproject.toml, README.md — если их ещё нет
 
-README.md – описание проекта (если отсутствует)
-
-Создайте сценарий, унаследовав BaseScenario, и зарегистрируйте его.
+Создайте сценарий, унаследовав BaseScenario и пометив его @register_scenario.
 
 Запустите пример:
 
@@ -52,29 +51,27 @@ python examples/main_example.py
 Архитектура
 Пакет построен по принципам гексагональной архитектуры:
 
-Интерфейсы (core.interfaces) – абстракции для БД, кеша, логгера и метрик.
+Интерфейсы (core.interfaces) — абстракции для БД, кеша, логгера и метрик.
 
-Базовый сценарий (BaseScenario) – основа для всех бизнес-сценариев.
+Базовый сценарий (BaseScenario) — основа для всех бизнес-сценариев.
 
-Реестр сценариев (ScenarioRegistry) – регистрация и получение сценариев по имени.
+Реестр сценариев (ScenarioRegistry) — регистрация и получение сценариев по имени.
 
-Утилиты (core.utils) – чистые функции: безопасность, даты, валидация.
+Утилиты (core.utils) — чистые функции: безопасность, даты, валидация.
 
 Компоненты
 Интерфейсы
-IDatabase – асинхронные CRUD-операции и произвольные SQL-запросы.
+IDatabase — асинхронные CRUD-операции и произвольные SQL-запросы.
 
-ICache – асинхронное кеширование (get, set, delete, clear).
+ICache — асинхронное кеширование (get, set, delete, clear).
 
-ILogger – асинхронное логирование (debug, info, warning, error, critical).
+ILogger — асинхронное логирование (debug, info, warning, error, critical).
 
-IMetrics – асинхронный сбор метрик (record, increment).
+IMetrics — асинхронный сбор метрик (record, increment).
 
 Все интерфейсы определены через Protocol и не зависят от конкретных реализаций.
 
 BaseScenario
-Базовый класс для сценариев:
-
 python
 from core import BaseScenario
 
@@ -84,42 +81,60 @@ class MyScenario(BaseScenario):
         pass
 Конструктор принимает:
 
-db – обязательный экземпляр IDatabase
+db — обязательный экземпляр IDatabase
 
-cache – опционально ICache
+cache — опционально ICache
 
-logger – опционально ILogger
+logger — опционально ILogger
 
-metrics – опционально IMetrics
+metrics — опционально IMetrics
 
-Для автоматического сбора метрик используйте декораторы.
-
-ScenarioRegistry
-Реестр сценариев:
+Регистрация сценариев
+Способ 1 — декоратор (рекомендуется):
 
 python
-ScenarioRegistry.register("my_scenario", MyScenario)
-scenario = ScenarioRegistry.get("my_scenario", deps)
-Автодискаверинг через entry point core.scenarios:
+from core import BaseScenario, register_scenario, tracked_scenario
 
-toml
-# pyproject.toml
-[project.entry-points."core.scenarios"]
-my_scenario = "my_project.scenarios:MyScenario"
-После импорта core реестр автоматически загрузит все зарегистрированные сценарии.
+@register_scenario("hello")
+@tracked_scenario("hello")
+class HelloScenario(BaseScenario):
+    async def execute(self, dto):
+        return {"message": f"Hello, {dto.name}!"}
+Декоратор срабатывает в момент импорта модуля. Чтобы модуль импортировался
+при старте приложения, вызовите один раз:
 
+python
+from core import ScenarioRegistry
+
+ScenarioRegistry.discover("app.scenarios")
+discover обходит все .py файлы внутри указанного пакета (кроме тех,
+что начинаются с _), импортирует их — и все сценарии с @register_scenario
+оказываются зарегистрированы.
+
+Способ 2 — ручная регистрация:
+
+python
+from core import ScenarioRegistry
+
+ScenarioRegistry.register("hello", HelloScenario)
+Используйте, если нужно зарегистрировать сценарий не в момент импорта модуля,
+а программно.
+
+Получение сценария:
+
+python
+scenario = ScenarioRegistry.get("hello", deps={"db": db, "logger": logger})
+result = await scenario.execute(dto)
 Исключения
 Иерархия исключений:
 
-CoreError – базовое исключение с опциональными атрибутами code и http_status.
+CoreError — базовое исключение с опциональными атрибутами code и http_status.
 
 NotFoundError (HTTP 404)
 
 ValidationError (HTTP 422)
 
 ConflictError (HTTP 409)
-
-Пример:
 
 python
 from core import NotFoundError
@@ -136,17 +151,17 @@ offset: int = 0
 
 Утилиты
 Безопасность (core.utils.security)
-hash_password(password) -> str – bcrypt-хеширование.
+hash_password(password) -> str — bcrypt-хеширование.
 
 verify_password(password, hashed) -> bool
 
-create_access_token(user_id, role, secret, expires_in) -> str – JWT HS256.
+create_access_token(user_id, role, secret, expires_in) -> str — JWT HS256.
 
 create_refresh_token(user_id, secret, expires_in) -> str
 
 decode_token(token, secret) -> dict
 
-extract_token_info(token, secret) -> TokenInfo – возвращает user_id и role.
+extract_token_info(token, secret) -> TokenInfo
 
 Работа с датами (core.utils.datetime_utils)
 parse_iso_datetime(value) -> datetime
@@ -166,7 +181,7 @@ validate_email(email)
 
 Встроенные реализации
 Логирование
-ConsoleLogger – реализация ILogger, пишет в stdout или файл.
+ConsoleLogger — реализация ILogger, пишет в stdout или файл.
 
 Уровень: CORE_LOG_LEVEL (по умолчанию INFO).
 
@@ -175,33 +190,16 @@ ConsoleLogger – реализация ILogger, пишет в stdout или фа
 Обработчик добавляется один раз, чтобы избежать дублирования.
 
 Метрики
-InMemoryMetrics – хранит статистику в памяти.
+InMemoryMetrics — хранит статистику в памяти.
 
 Доступ через get_metrics() (глобальный синглтон) или собственный экземпляр.
 
-Собирает: количество вызовов, ошибки, среднее/минимальное/максимальное время выполнения.
+Собирает: количество вызовов, ошибки, среднее/минимальное/максимальное время.
 
 Включение/отключение: CORE_METRICS_ENABLED (по умолчанию true).
 
-Декораторы:
-
-@track_metrics("scenario_name") – для методов.
-
-@tracked_scenario("scenario_name") – для классов (оборачивает execute).
-
-Пример:
-
-python
-from core import BaseScenario, tracked_scenario
-
-@tracked_scenario("my_scenario")
-class MyScenario(BaseScenario):
-    async def execute(self, dto):
-        return {"ok": True}
-Декоратор использует self._metrics, если они переданы в конструктор, иначе глобальный get_metrics().
-
 Кэш
-InMemoryCache – потокобезопасная реализация ICache с TTL и ограничением размера.
+InMemoryCache — потокобезопасная реализация ICache с TTL и ограничением размера.
 
 python
 from core import InMemoryCache
@@ -210,11 +208,11 @@ cache = InMemoryCache(ttl_seconds=60, max_size=1000)
 await cache.set("key", "value")
 value = await cache.get("key")
 CLI-команда core-init
-Команда инициализирует проект, создавая структуру и файлы.
+Инициализирует проект, создавая структуру и файлы.
 
---force – перезаписывать существующие файлы.
+--force — перезаписать существующие файлы.
 
---target-dir – имя папки для кода (по умолчанию core_project).
+--target-dir — имя папки для кода (по умолчанию core_project).
 
 Создаваемые файлы:
 
@@ -222,18 +220,15 @@ CLI-команда core-init
 
 scenarios/, interfaces/, utils/ с __init__.py и README
 
-examples/example_scenario.py
-
-examples/event_infra_adapter.py
-
-examples/main_example.py
+examples/example_scenario.py, examples/event_infra_adapter.py, examples/main_example.py
 
 pyproject.toml (если отсутствует)
 
 README.md (если отсутствует)
 
 Конфигурация
-Пакет загружает настройки из .core-package.env (поиск вверх по дереву каталогов) или из переменных окружения.
+Пакет загружает настройки из .core-package.env (поиск вверх по дереву каталогов)
+или из переменных окружения.
 
 Переменная	Описание	По умолчанию
 CORE_JWT_SECRET	Секрет для JWT	change-me-in-production
@@ -242,7 +237,7 @@ CORE_REFRESH_TOKEN_DAYS	Время жизни refresh-токена (дни)	30
 CORE_BCRYPT_ROUNDS	Раунды bcrypt	12
 CORE_METRICS_ENABLED	Включить метрики (true/false)	true
 CORE_LOG_LEVEL	Уровень логирования	INFO
-CORE_LOG_FILE	Путь к файлу лога (пусто – stdout)	(пусто)
+CORE_LOG_FILE	Путь к файлу лога (пусто — stdout)	(пусто)
 CORE_ENV_PATH	Явный путь к файлу .env	(пусто)
 Пример адаптера для event-infra
 python
@@ -284,16 +279,21 @@ class EventInfraDatabaseAdapter(IDatabase):
 Расширение
 Создайте класс, унаследовав BaseScenario.
 
-Реализуйте метод execute(dto) -> Response.
+Реализуйте метод execute(dto).
 
-Зарегистрируйте сценарий через entry point в pyproject.toml:
+Помечайте класс декоратором @register_scenario("имя").
 
-toml
-[project.entry-points."core.scenarios"]
-my_scenario = "my_project.scenarios:MyScenario"
+В точке входа приложения вызовите ScenarioRegistry.discover("app.scenarios").
+
+python
+from core import BaseScenario, register_scenario, tracked_scenario
+
+@register_scenario("my_scenario")
+@tracked_scenario("my_scenario")
+class MyScenario(BaseScenario):
+    async def execute(self, dto):
+        return {"ok": True}
 Тестирование
-Пакет поставляется с набором тестов. Запуск:
-
 bash
 pytest tests/ -v
 Лицензия

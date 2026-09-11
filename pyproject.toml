@@ -23,8 +23,5 @@ dependencies = [
 [project.scripts]
 core-init = "core.cli:init"
 
-[project.entry-points."core.scenarios"]
-# Здесь проекты могут регистрировать свои сценарии
-
 [tool.setuptools.package-data]
 core = ["templates/*", "templates/structure_template/*", "templates/structure_template/**/*"]

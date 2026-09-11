@@ -16,10 +16,8 @@ def _copy_template(template_name: str, dest: Path, force: bool = False) -> bool:
         return False
 
     try:
-        # Совместимо с Python 3.8+
         content = resources.read_text("core", f"templates/{template_name}", encoding="utf-8")
     except Exception as e:
-        # На случай, если ресурсы не найдены, пробуем через files (для более новых версий)
         try:
             content = resources.files("core").joinpath(f"templates/{template_name}").read_text(encoding="utf-8")
         except Exception:
@@ -91,10 +89,6 @@ def init() -> None:
             'dependencies = [\n'
             '    "core-package",\n'
             ']\n'
-            '\n'
-            '[project.entry-points."core.scenarios"]\n'
-            '# Зарегистрируйте свои сценарии здесь, например:\n'
-            '# my_scenario = "my_project.scenarios:MyScenario"\n'
         )
         pyproject.write_text(content, encoding="utf-8")
         print(f"Создан: {pyproject}")
@@ -124,6 +118,8 @@ def init() -> None:
             '## Разработка\n'
             '\n'
             f'Добавляйте свои сценарии в папку `{args.target_dir}/scenarios/`.\n'
+            'Помечайте класс декоратором `@register_scenario("имя")`.\n'
+            'Сценарии подхватятся автоматически через `ScenarioRegistry.discover(...)`.\n'
         )
         readme_project.write_text(content, encoding="utf-8")
         print(f"Создан: {readme_project}")
