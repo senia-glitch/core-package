@@ -6,93 +6,241 @@
 
 Пакет предоставляет:
 
-- Интерфейсы для внешних зависимостей (БД, кеш, логирование, метрики)
-- Базовый класс для сценариев и реестр сценариев
-- Утилиты: безопасность (bcrypt, JWT), работа с датами, валидаторы
-- Встроенные логгер и метрики в памяти
-- CLI-команду `core-init` для быстрой инициализации проекта
+- Интерфейсы для внешних зависимостей: БД, кеш, логгер, метрики.
+- Базовый класс `BaseScenario` и реестр сценариев.
+- Утилиты: безопасность (bcrypt, JWT), работа с датами, валидаторы.
+- Встроенные реализации: `InMemoryCache`, `ConsoleLogger`, `InMemoryMetrics`.
+- CLI-команду `core-init` для быстрой инициализации проекта.
+- Опциональный адаптер к пакету `event-infra`.
+
+Пакет **не привязан** к конкретной БД. Он предоставляет абстракции, а конкретные реализации (`IDatabase`, `ICache`, `ILogger`, `IMetrics`) пользователь либо подключает из `event-infra`, либо пишет сам.
 
 ## Возможности
 
 - **Гексагональная архитектура** — чёткое разделение интерфейсов и реализаций.
-- **Автоматический сбор метрик** — декораторы `@track_metrics` и `@tracked_scenario`.
+- **Точка входа `start_core()`** — единый запуск ядра в вашем проекте.
 - **Регистрация сценариев декоратором** — `@register_scenario("name")`.
-- **Автозагрузка сценариев из пакета** — `ScenarioRegistry.discover("app.scenarios")`.
-- **Потокобезопасный in-memory кэш** с TTL и ограничением размера.
-- **Расширяемая система ошибок** — базовый `CoreError` с HTTP-статусами и кодами.
-- **Гибкая конфигурация** — загрузка из `.core-package.env`, поиск вверх по дереву каталогов, поддержка `CORE_ENV_PATH`.
+- **Автозагрузка сценариев** — `start_core(discover="my_project.scenarios")`.
+- **Автоматический сбор метрик** — `@track_metrics` и `@tracked_scenario`.
+- **Потокобезопасный in-memory кеш** с TTL и ограничением размера.
+- **Расширяемая система ошибок** — `CoreError` с HTTP-статусами и кодами.
+- **Гибкая конфигурация** — из `.core-package.env`, поиск вверх по дереву каталогов, поддержка `CORE_ENV_PATH`.
+
+## Установка
+
+```bash
+# Только ядро
+pip install git+https://github.com/senia-glitch/core-package.git
+
+# Ядро + event-infra (опциональный extra)
+pip install "core-package[event-infra] @ git+https://github.com/senia-glitch/core-package.git"
+```
+
+Пакеты **независимы**. `core-package` не тянет `event-infra` при обычной установке.
 
 ## Быстрый старт
 
-1. Установите пакет:
+### 1. Инициализация проекта
 
-   ```bash
-   pip install git+https://github.com/ваш-username/core-package.git
-Инициализируйте проект:
+В корне вашего проекта:
 
-bash
+```bash
 core-init
+```
+
 Будут созданы:
 
-.core-package.env — файл с переменными окружения
+- `.core-package.env` — конфигурация (JWT, bcrypt, логирование, метрики).
+- `core_project/scenarios/`, `core_project/interfaces/`, `core_project/utils/` — папки для вашего кода.
+- `core_project/examples/` — примеры.
+- `pyproject.toml`, `README.md` — если их ещё нет.
 
-scenarios/, interfaces/, utils/ — папки для вашего кода
+Флаги: `--force` (перезаписать), `--target-dir` (имя папки для кода, по умолчанию `core_project`).
 
-examples/ — примеры использования
+### 2. Опишите свой сценарий
 
-pyproject.toml, README.md — если их ещё нет
+В `core_project/scenarios/my_scenario.py`:
 
-Создайте сценарий, унаследовав BaseScenario и пометив его @register_scenario.
+```python
+from pydantic import BaseModel
+from core import BaseScenario, register_scenario
 
-Запустите пример:
 
-bash
-python examples/main_example.py
-Архитектура
-Пакет построен по принципам гексагональной архитектуры:
+class MyDTO(BaseModel):
+    user_id: int
+    name: str
 
-Интерфейсы (core.interfaces) — абстракции для БД, кеша, логгера и метрик.
 
-Базовый сценарий (BaseScenario) — основа для всех бизнес-сценариев.
+@register_scenario("greeting")
+class GreetingScenario(BaseScenario):
+    async def execute(self, dto: MyDTO):
+        user = await self._db.read("users", dto.user_id)
+        return {"greeting": f"Hello, {user['name']}!"}
+```
 
-Реестр сценариев (ScenarioRegistry) — регистрация и получение сценариев по имени.
+Сценарий получает зависимости (`db`, `cache`, `logger`, `metrics`) через конструктор `BaseScenario`.
 
-Утилиты (core.utils) — чистые функции: безопасность, даты, валидация.
+### 3. Запустите из своей точки входа
 
-Компоненты
-Интерфейсы
-IDatabase — асинхронные CRUD-операции и произвольные SQL-запросы.
+```python
+import asyncio
+from core import start_core, run
 
-ICache — асинхронное кеширование (get, set, delete, clear).
 
-ILogger — асинхронное логирование (debug, info, warning, error, critical).
+async def main():
+    await start_core(
+        db=MyDatabase(),
+        discover="core_project.scenarios",
+    )
 
-IMetrics — асинхронный сбор метрик (record, increment).
+    result = await run("greeting", MyDTO(user_id=1, name="Alice"))
+    print(result)
 
-Все интерфейсы определены через Protocol и не зависят от конкретных реализаций.
 
-BaseScenario
-python
-from core import BaseScenario
+if __name__ == "__main__":
+    asyncio.run(main())
+```
 
+## Точка входа
+
+`start_core()` — единственная функция, которая нужна для запуска ядра.
+
+```python
+async def start_core(
+    router=None,              # EventRouter из event-infra (опционально)
+    *,
+    db=None,                  # своя реализация IDatabase
+    cache=None,               # реализация ICache (по умолчанию InMemoryCache)
+    logger=None,              # реализация ILogger (по умолчанию ConsoleLogger)
+    metrics=None,             # реализация IMetrics (по умолчанию InMemoryMetrics)
+    discover=None,            # dotted-имя пакета со сценариями
+) -> None
+```
+
+**Обязательно** передать `router` **или** `db` — но не оба.
+
+После запуска из любого модуля проекта доступны:
+
+- `await run("scenario_name", dto)` — выполнить сценарий по имени.
+- `get_scenario("scenario_name")` — экземпляр с внедрёнными зависимостями.
+- `get_db()` / `get_cache()` / `get_logger()` / `get_core_metrics()` — активные зависимости.
+
+### Повторная инициализация
+
+Ядро — синглтон на процесс. Повторный `start_core()` бросит `RuntimeError`. Для тестов есть `reset_core()`:
+
+```python
+from core import start_core, reset_core
+
+await start_core(db=db1)
+# ...
+reset_core()
+await start_core(db=db2)
+```
+
+## Связка с event-infra
+
+`core-package` и `event-infra` — независимые пакеты. Первый — про сценарии и абстракции, второй — про работу с PostgreSQL. Связываются они **опционально** через адаптер `EventInfraDatabaseAdapter`, который живёт внутри `core.adapters.event_infra` и импортируется лениво.
+
+### Установка
+
+```bash
+# Оба пакета через extra
+pip install "core-package[event-infra] @ git+https://github.com/senia-glitch/core-package.git"
+
+# Или раздельно
+pip install git+https://github.com/senia-glitch/core-package.git
+pip install git+https://github.com/senia-glitch/event-infra.git
+```
+
+### Использование
+
+В `main.py`:
+
+```python
+from run_infrastructure import start_infrastructure   # event-infra
+from core import start_core, run                      # core-package
+
+
+async def main():
+    # 1. Инфраструктура БД: миграции + EventRouter
+    router = await start_infrastructure()
+
+    try:
+        # 2. Ядро с адаптером к event-infra
+        await start_core(
+            router=router,
+            discover="core_project.scenarios",
+        )
+
+        # 3. Работа со сценариями
+        result = await run("create_user", CreateUserDTO(name="Alice"))
+        print(result)
+
+    finally:
+        # 4. Graceful shutdown инфраструктуры
+        await router.shutdown()
+```
+
+**Порядок обязателен:** `start_infrastructure()` → `start_core(router=router)`.
+`router` доступен только после запуска event-infra.
+
+### Если event-infra не установлен
+
+Пакет работает без него. Передайте свою реализацию `IDatabase`:
+
+```python
+await start_core(db=MyInMemoryDatabase())
+```
+
+`start_core()` **не подставляет in-memory БД по умолчанию** — это осознанное решение, чтобы поведение было предсказуемым.
+
+## Команда `core-init`
+
+Создаёт структуру и примеры.
+
+```bash
+core-init [--force] [--target-dir core_project]
+```
+
+Что создаётся:
+
+- `.core-package.env` — всегда в корне.
+- `<target-dir>/scenarios/`, `interfaces/`, `utils/` — с `__init__.py` и `README.md`.
+- `<target-dir>/examples/`:
+  - `main_example.py` — in-memory демо без event-infra.
+  - `main_with_event_infra_example.py` — связка с event-infra.
+  - `example_scenario.py` — шаблон сценария.
+  - `README.md` — пояснение к примерам.
+- `pyproject.toml`, `README.md` — если отсутствуют.
+
+## Архитектура и компоненты
+
+### Интерфейсы
+
+Все интерфейсы — `Protocol`, не привязаны к реализациям.
+
+- `IDatabase` — `create`, `read`, `update`, `delete`, `custom`.
+- `ICache` — `get`, `set`, `delete`, `clear`.
+- `ILogger` — `debug`, `info`, `warning`, `error`, `critical`.
+- `IMetrics` — `record`, `increment`.
+- `ITransactionalDatabase` — расширяет `IDatabase` транзакциями.
+
+### BaseScenario
+
+```python
 class MyScenario(BaseScenario):
     async def execute(self, dto):
-        # логика сценария
-        pass
-Конструктор принимает:
+        ...
+```
 
-db — обязательный экземпляр IDatabase
+Конструктор: `db` (обязательно), `cache`, `logger`, `metrics` (опционально). Метрики **не** включаются автоматически — используйте декоратор.
 
-cache — опционально ICache
+### Регистрация сценариев
 
-logger — опционально ILogger
+**Способ 1 — декоратор** (рекомендуется):
 
-metrics — опционально IMetrics
-
-Регистрация сценариев
-Способ 1 — декоратор (рекомендуется):
-
-python
+```python
 from core import BaseScenario, register_scenario, tracked_scenario
 
 @register_scenario("hello")
@@ -100,201 +248,121 @@ from core import BaseScenario, register_scenario, tracked_scenario
 class HelloScenario(BaseScenario):
     async def execute(self, dto):
         return {"message": f"Hello, {dto.name}!"}
-Декоратор срабатывает в момент импорта модуля. Чтобы модуль импортировался
-при старте приложения, вызовите один раз:
+```
 
-python
+Декоратор срабатывает в момент импорта модуля. Чтобы модуль импортировался при старте приложения, используйте `discover`:
+
+```python
+await start_core(db=db, discover="app.scenarios")
+```
+
+`discover` обходит все `.py` внутри пакета (кроме начинающихся с `_`) и импортирует их. Ошибка в одном модуле не ломает загрузку остальных.
+
+**Способ 2 — вручную:**
+
+```python
 from core import ScenarioRegistry
-
-ScenarioRegistry.discover("app.scenarios")
-discover обходит все .py файлы внутри указанного пакета (кроме тех,
-что начинаются с _), импортирует их — и все сценарии с @register_scenario
-оказываются зарегистрированы.
-
-Способ 2 — ручная регистрация:
-
-python
-from core import ScenarioRegistry
-
 ScenarioRegistry.register("hello", HelloScenario)
-Используйте, если нужно зарегистрировать сценарий не в момент импорта модуля,
-а программно.
+```
 
-Получение сценария:
+### Исключения
 
-python
-scenario = ScenarioRegistry.get("hello", deps={"db": db, "logger": logger})
-result = await scenario.execute(dto)
-Исключения
-Иерархия исключений:
+- `CoreError` — базовое исключение (`code`, `http_status`).
+- `NotFoundError` (HTTP 404).
+- `ValidationError` (HTTP 422).
+- `ConflictError` (HTTP 409).
 
-CoreError — базовое исключение с опциональными атрибутами code и http_status.
-
-NotFoundError (HTTP 404)
-
-ValidationError (HTTP 422)
-
-ConflictError (HTTP 409)
-
-python
+```python
 from core import NotFoundError
-
 raise NotFoundError("User not found")
-DTO
-Базовый класс BaseDTO (Pydantic) с общими полями:
+```
 
-access_token: Optional[str]
+### DTO
 
-limit: int = 100 (от 1 до 1000)
+`BaseDTO` — Pydantic-модель с общими полями:
 
-offset: int = 0
+- `access_token: Optional[str]`
+- `limit: int = 100` (1..1000)
+- `offset: int = 0`
 
-Утилиты
-Безопасность (core.utils.security)
-hash_password(password) -> str — bcrypt-хеширование.
+### Утилиты
 
-verify_password(password, hashed) -> bool
+**Безопасность** (`core.utils.security`):
 
-create_access_token(user_id, role, secret, expires_in) -> str — JWT HS256.
+- `hash_password(password)` / `verify_password(password, hashed)` — bcrypt.
+- `create_access_token(user_id, role, secret, expires_in)` / `create_refresh_token(...)` — JWT HS256.
+- `decode_token(token, secret)` / `extract_token_info(token, secret)`.
 
-create_refresh_token(user_id, secret, expires_in) -> str
+**Даты** (`core.utils.datetime_utils`):
 
-decode_token(token, secret) -> dict
+- `parse_iso_datetime(value)`
+- `normalize_timezone(dt, offset_hours)`
+- `is_datetime_in_past(dt, now=None)`
+- `format_iso(dt, with_timezone=False)`
 
-extract_token_info(token, secret) -> TokenInfo
+**Валидаторы** (`core.utils.validators`):
 
-Работа с датами (core.utils.datetime_utils)
-parse_iso_datetime(value) -> datetime
+- `validate_pagination(limit, offset)`
+- `validate_required(value, field_name)`
+- `validate_email(email)`
 
-normalize_timezone(dt, offset_hours) -> datetime
+### Встроенные реализации
 
-is_datetime_in_past(dt) -> bool
+**Логирование.** `ConsoleLogger` — пишет в stdout или файл. Уровень читается динамически из `CORE_LOG_LEVEL`. Handler добавляется один раз.
 
-format_iso(dt, with_timezone=False) -> str
+**Метрики.** `InMemoryMetrics` — calls, errors, total/min/max/avg по каждому сценарию. Глобальный синглтон `get_metrics()` или свой экземпляр. Отключается через `CORE_METRICS_ENABLED=false`.
 
-Валидаторы (core.utils.validators)
-validate_pagination(limit, offset)
+**Кеш.** `InMemoryCache` — `asyncio.Lock`, TTL на элемент, вытеснение самого старого при переполнении.
 
-validate_required(value, field_name)
-
-validate_email(email)
-
-Встроенные реализации
-Логирование
-ConsoleLogger — реализация ILogger, пишет в stdout или файл.
-
-Уровень: CORE_LOG_LEVEL (по умолчанию INFO).
-
-Файл: если задан CORE_LOG_FILE, вывод пишется в файл.
-
-Обработчик добавляется один раз, чтобы избежать дублирования.
-
-Метрики
-InMemoryMetrics — хранит статистику в памяти.
-
-Доступ через get_metrics() (глобальный синглтон) или собственный экземпляр.
-
-Собирает: количество вызовов, ошибки, среднее/минимальное/максимальное время.
-
-Включение/отключение: CORE_METRICS_ENABLED (по умолчанию true).
-
-Кэш
-InMemoryCache — потокобезопасная реализация ICache с TTL и ограничением размера.
-
-python
+```python
 from core import InMemoryCache
 
 cache = InMemoryCache(ttl_seconds=60, max_size=1000)
 await cache.set("key", "value")
 value = await cache.get("key")
-CLI-команда core-init
-Инициализирует проект, создавая структуру и файлы.
+```
 
---force — перезаписать существующие файлы.
+## Конфигурация
 
---target-dir — имя папки для кода (по умолчанию core_project).
+Файл `.core-package.env` — поиск вверх по дереву от текущей директории. Можно указать явно через `CORE_ENV_PATH`.
 
-Создаваемые файлы:
+| Переменная | Описание | По умолчанию |
+|---|---|---|
+| `CORE_JWT_SECRET` | Секрет для JWT | `change-me-in-production` |
+| `CORE_ACCESS_TOKEN_MINUTES` | Время жизни access-токена (мин) | `15` |
+| `CORE_REFRESH_TOKEN_DAYS` | Время жизни refresh-токена (дни) | `30` |
+| `CORE_BCRYPT_ROUNDS` | Раунды bcrypt | `12` |
+| `CORE_METRICS_ENABLED` | Включить метрики | `true` |
+| `CORE_LOG_LEVEL` | Уровень логирования | `INFO` |
+| `CORE_LOG_FILE` | Путь к файлу лога (пусто — stdout) | пусто |
+| `CORE_ENV_PATH` | Явный путь к `.core-package.env` | пусто |
 
-.core-package.env
+## Расширение
 
-scenarios/, interfaces/, utils/ с __init__.py и README
+### Свой сценарий
 
-examples/example_scenario.py, examples/event_infra_adapter.py, examples/main_example.py
+1. Унаследуйте `BaseScenario`.
+2. Реализуйте `async def execute(self, dto)`.
+3. Пометьте `@register_scenario("имя")` и, при желании, `@tracked_scenario("имя")`.
+4. Загрузите через `start_core(discover="my_project.scenarios")`.
 
-pyproject.toml (если отсутствует)
+### Своя реализация IDatabase
 
-README.md (если отсутствует)
+Реализуйте методы `create`/`read`/`update`/`delete`/`custom`, передайте в `start_core(db=...)`.
 
-Конфигурация
-Пакет загружает настройки из .core-package.env (поиск вверх по дереву каталогов)
-или из переменных окружения.
+Примеры в `core_project/examples/` после `core-init`.
 
-Переменная	Описание	По умолчанию
-CORE_JWT_SECRET	Секрет для JWT	change-me-in-production
-CORE_ACCESS_TOKEN_MINUTES	Время жизни access-токена (мин)	15
-CORE_REFRESH_TOKEN_DAYS	Время жизни refresh-токена (дни)	30
-CORE_BCRYPT_ROUNDS	Раунды bcrypt	12
-CORE_METRICS_ENABLED	Включить метрики (true/false)	true
-CORE_LOG_LEVEL	Уровень логирования	INFO
-CORE_LOG_FILE	Путь к файлу лога (пусто — stdout)	(пусто)
-CORE_ENV_PATH	Явный путь к файлу .env	(пусто)
-Пример адаптера для event-infra
-python
-from core.interfaces import IDatabase
+### Свой адаптер
 
-class EventInfraDatabaseAdapter(IDatabase):
-    def __init__(self, router):
-        self._router = router
+Если вы хотите работать не с event-infra, а с другой БД — напишите класс-наследник `IDatabase`. Модуль `core.adapters.event_infra` можно рассматривать как образец.
 
-    async def create(self, entity, data):
-        resp = await self._router.create(entity, data, channel="write")
-        if not resp.success:
-            raise Exception(resp.error.message)
-        return resp.data[0]
+## Тестирование
 
-    async def read(self, entity, id):
-        resp = await self._router.read(entity, id, channel="read")
-        if not resp.success:
-            raise Exception(resp.error.message)
-        return resp.data[0] if resp.data else None
-
-    async def update(self, entity, id, data):
-        resp = await self._router.update(entity, id, data, channel="write")
-        if not resp.success:
-            raise Exception(resp.error.message)
-        return resp.data[0]
-
-    async def delete(self, entity, id):
-        resp = await self._router.delete(entity, id, channel="write")
-        if not resp.success:
-            raise Exception(resp.error.message)
-        return resp.count > 0
-
-    async def custom(self, sql, params):
-        resp = await self._router.custom(sql, params, channel="read")
-        if not resp.success:
-            raise Exception(resp.error.message)
-        return [dict(row._mapping) for row in resp.data if row]
-Расширение
-Создайте класс, унаследовав BaseScenario.
-
-Реализуйте метод execute(dto).
-
-Помечайте класс декоратором @register_scenario("имя").
-
-В точке входа приложения вызовите ScenarioRegistry.discover("app.scenarios").
-
-python
-from core import BaseScenario, register_scenario, tracked_scenario
-
-@register_scenario("my_scenario")
-@tracked_scenario("my_scenario")
-class MyScenario(BaseScenario):
-    async def execute(self, dto):
-        return {"ok": True}
-Тестирование
-bash
+```bash
+pip install -e ".[test]"
 pytest tests/ -v
-Лицензия
+```
+
+## Лицензия
+
 MIT

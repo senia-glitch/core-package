@@ -20,8 +20,27 @@ dependencies = [
     "bcrypt>=4.0",
 ]
 
+[project.optional-dependencies]
+event-infra = [
+    "event-infra @ git+https://github.com/senia-glitch/event-infra.git",
+]
+test = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+]
+
 [project.scripts]
 core-init = "core.cli:init"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.setuptools.package-data]
-core = ["templates/*", "templates/structure_template/*", "templates/structure_template/**/*"]
+core = [
+    "templates/*",
+    "templates/structure_template/*",
+    "templates/structure_template/**/*",
+]

@@ -90,3 +90,26 @@ async def test_track_metrics_disabled(monkeypatch):
 
     monkeypatch.undo()
     importlib.reload(core.metrics)
+
+
+@pytest.mark.asyncio
+async def test_track_metrics_swallows_metrics_errors():
+    """Если metrics.record падает, декоратор не должен ломать вызов."""
+
+    class BrokenMetrics:
+        async def record(self, *args, **kwargs):
+            raise RuntimeError("metrics backend down")
+
+        async def increment(self, *args, **kwargs):
+            raise RuntimeError("metrics backend down")
+
+    class Dummy:
+        def __init__(self):
+            self._metrics = BrokenMetrics()
+
+        @track_metrics("broken_metric")
+        async def method(self):
+            return "ok"
+
+    result = await Dummy().method()
+    assert result == "ok"

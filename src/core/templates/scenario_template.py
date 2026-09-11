@@ -58,11 +58,6 @@ class MyScenario(BaseScenario):
         )
 
 
-# 4. Зарегистрируйте сценарий в реестре (можно через entry points)
-# В pyproject.toml добавьте:
-# [project.entry-points."core.scenarios"]
-# my_scenario = "my_project.scenarios:MyScenario"
-
-# Или зарегистрируйте вручную в коде:
-# from core import ScenarioRegistry
-# ScenarioRegistry.register("my_scenario", MyScenario)
+# 4. Зарегистрируйте сценарий через декоратор @register_scenario("my_scenario").
+#    Автозагрузка из пакета — через ScenarioRegistry.discover("my_project.scenarios"),
+#    которая обычно вызывается внутри start_core(discover="my_project.scenarios").

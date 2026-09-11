@@ -6,6 +6,7 @@
 - Исключения, утилиты
 - Встроенные логгер, метрики и кеш
 - Декораторы: track_metrics, tracked_scenario, register_scenario
+- Точку входа: start_core, run, get_scenario и get-функции для зависимостей
 """
 
 from .interfaces import IDatabase, ICache, ILogger, IMetrics, ITransactionalDatabase
@@ -18,6 +19,16 @@ from .logger import ConsoleLogger
 from .metrics import InMemoryMetrics, get_metrics
 from .cache import InMemoryCache
 from .decorators import track_metrics, tracked_scenario, register_scenario
+from .startup import (
+    start_core,
+    run,
+    get_scenario,
+    get_db,
+    get_cache,
+    get_logger,
+    get_core_metrics,
+    reset_core,
+)
 
 __all__ = [
     "IDatabase",
@@ -40,4 +51,13 @@ __all__ = [
     "track_metrics",
     "tracked_scenario",
     "register_scenario",
+    # startup
+    "start_core",
+    "run",
+    "get_scenario",
+    "get_db",
+    "get_cache",
+    "get_logger",
+    "get_core_metrics",
+    "reset_core",
 ]

@@ -1,11 +1,11 @@
 # templates/main_template.py
-"""Пример использования core-package с in-memory заглушкой БД.
+"""Пример использования core-package с in-memory БД.
 
 Демонстрирует:
-- Создание in-memory адаптера IDatabase
-- Использование встроенных логгера и метрик
-- Регистрацию и выполнение сценария
-- Вывод метрик после выполнения
+- Реализацию своего IDatabase (in-memory).
+- Инициализацию ядра через start_core().
+- Выполнение сценария через run().
+- Просмотр метрик через get_core_metrics().
 
 Запуск:
     python examples/main_example.py
@@ -13,20 +13,26 @@
 
 import asyncio
 from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel
 
 from core import (
     BaseScenario,
     IDatabase,
-    ScenarioRegistry,
-    ConsoleLogger,
-    InMemoryMetrics,
+    get_core_metrics,
+    register_scenario,
+    run,
+    start_core,
 )
 from core.exceptions import NotFoundError
 
 
+# ============================================================
+# 1. In-memory реализация IDatabase (для демонстрации)
+# ============================================================
+
 class InMemoryDatabase(IDatabase):
-    """Простая in-memory реализация IDatabase для демонстрации."""
+    """Простая реализация IDatabase в памяти."""
 
     def __init__(self):
         self._data: Dict[str, Dict[int, Dict[str, Any]]] = {}
@@ -65,6 +71,10 @@ class InMemoryDatabase(IDatabase):
         return []
 
 
+# ============================================================
+# 2. Сценарий: приветствие пользователя
+# ============================================================
+
 class GreetingDTO(BaseModel):
     user_id: int
     name: str
@@ -75,6 +85,7 @@ class GreetingResponse(BaseModel):
     greeting: str
 
 
+@register_scenario("greeting")
 class GreetingScenario(BaseScenario):
     """Пример сценария: приветствие пользователя."""
 
@@ -97,35 +108,33 @@ class GreetingScenario(BaseScenario):
         return GreetingResponse(user_id=user["id"], greeting=f"Hello, {user['name']}!")
 
 
+# ============================================================
+# 3. Запуск
+# ============================================================
+
 async def main():
     print("=" * 50)
     print("ЗАПУСК ПРИМЕРА core-package")
     print("=" * 50)
 
-    db = InMemoryDatabase()
-    logger = ConsoleLogger()
-    metrics = InMemoryMetrics()
-
-    ScenarioRegistry.register("greeting", GreetingScenario)
-
-    deps = {"db": db, "logger": logger, "metrics": metrics}
-    scenario = ScenarioRegistry.get("greeting", deps)
+    # start_core инициализирует ядро: db, cache, logger, metrics
+    await start_core(db=InMemoryDatabase())
 
     dto = GreetingDTO(user_id=42, name="Alice")
     print(f"\nВызов с user_id={dto.user_id}, name={dto.name}")
-    response = await scenario.execute(dto)
+    response = await run("greeting", dto)
     print(f"Ответ: {response.greeting}")
 
     dto2 = GreetingDTO(user_id=100, name="Bob")
     print(f"\nВызов с user_id={dto2.user_id}, name={dto2.name}")
-    response2 = await scenario.execute(dto2)
+    response2 = await run("greeting", dto2)
     print(f"Ответ: {response2.greeting}")
 
     print("\n" + "=" * 50)
     print("МЕТРИКИ ВЫПОЛНЕНИЯ")
     print("=" * 50)
-    stats = metrics.get_stats()
-    for s in stats:
+    metrics = get_core_metrics()
+    for s in metrics.get_stats():
         print(f"  {s.name}:")
         print(f"    Вызовов: {s.calls}")
         print(f"    Ошибок: {s.errors}")

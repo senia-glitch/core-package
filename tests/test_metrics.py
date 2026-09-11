@@ -75,3 +75,14 @@ async def test_metrics_disabled(monkeypatch):
     await metrics.increment("test_scenario", scenario="test_scenario", error=True)
     assert len(metrics.get_stats()) == 0
     monkeypatch.undo()
+
+
+@pytest.mark.asyncio
+async def test_metrics_avg_zero_when_no_calls():
+    """Если сценарий ещё не вызывался, avg_time_ms = 0.0, а не ошибка."""
+    metrics = InMemoryMetrics()
+    await metrics.increment("only_errors", scenario="only_errors", error=True)
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].calls == 0
+    assert stats[0].avg_time_ms == 0.0

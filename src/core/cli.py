@@ -30,20 +30,18 @@ def _copy_template(template_name: str, dest: Path, force: bool = False) -> bool:
 
 
 def _ensure_dir(path: Path) -> None:
-    """Создаёт директорию, если её нет."""
     if not path.exists():
         path.mkdir(parents=True)
         print(f"Создана папка: {path}")
 
 
 def init() -> None:
-    """Инициализация проекта: создаёт структуру папок и файлов."""
     parser = argparse.ArgumentParser(description="Инициализация проекта с core-package")
     parser.add_argument("--force", action="store_true", help="Перезаписать существующие файлы")
     parser.add_argument(
         "--target-dir",
         default="core_project",
-        help="Папка, в которую будут помещены сгенерированные файлы (кроме .core-package.env). По умолчанию: core_project"
+        help="Папка для кода (по умолчанию: core_project)",
     )
     args = parser.parse_args()
 
@@ -51,10 +49,10 @@ def init() -> None:
     force = args.force
     target_path = cwd / args.target_dir
 
-    # 1. Конфигурационный файл (всегда в текущей папке)
+    # 1. Конфиг
     _copy_template("env_template.txt", cwd / ".core-package.env", force)
 
-    # 2. Папки для пользовательского кода внутри target_path
+    # 2. Папки пользовательского кода
     for folder in ["scenarios", "interfaces", "utils"]:
         folder_path = target_path / folder
         _ensure_dir(folder_path)
@@ -69,15 +67,24 @@ def init() -> None:
             readme.write_text(f"# {folder.capitalize()}\n\nЗдесь находятся ваши {folder}.\n", encoding="utf-8")
             print(f"Создан: {readme}")
 
-    # 3. Примеры внутри target_path
+    # 3. Примеры
     examples_dir = target_path / "examples"
     _ensure_dir(examples_dir)
 
     _copy_template("scenario_template.py", examples_dir / "example_scenario.py", force)
-    _copy_template("adapter_template.py", examples_dir / "event_infra_adapter.py", force)
     _copy_template("main_template.py", examples_dir / "main_example.py", force)
+    _copy_template(
+        "main_with_event_infra_template.py",
+        examples_dir / "main_with_event_infra_example.py",
+        force,
+    )
+    _copy_template(
+        "examples_readme_template.md",
+        examples_dir / "README.md",
+        force,
+    )
 
-    # 4. pyproject.toml (в корне проекта)
+    # 4. pyproject.toml
     pyproject = cwd / "pyproject.toml"
     if not pyproject.exists() or force:
         content = (
@@ -93,41 +100,30 @@ def init() -> None:
         pyproject.write_text(content, encoding="utf-8")
         print(f"Создан: {pyproject}")
     else:
-        print(f"Файл {pyproject} уже существует, пропускаем (используйте --force для перезаписи).")
+        print(f"Файл {pyproject} уже существует, пропускаем (--force для перезаписи).")
 
-    # 5. README проекта (в корне)
+    # 5. README
     readme_project = cwd / "README.md"
     if not readme_project.exists() or force:
         content = (
             '# Мой проект на core-package\n'
             '\n'
-            '## Установка\n'
+            '## Установка\n\n```bash\npip install -e .\n```\n'
+            '\n## Использование\n\n'
+            f'Примеры в `{args.target_dir}/examples/`:\n'
             '\n'
-            '```bash\n'
-            'pip install -e .\n'
-            '```\n'
-            '\n'
-            '## Использование\n'
-            '\n'
-            f'Смотрите примеры в папке `{args.target_dir}/examples/`.\n'
-            'Запустите рабочий пример:\n'
-            '```bash\n'
+            f'- `main_example.py` — in-memory демо без event-infra\n'
+            f'- `main_with_event_infra_example.py` — связка с event-infra\n'
+            '\n```bash\n'
             f'python {args.target_dir}/examples/main_example.py\n'
             '```\n'
-            '\n'
-            '## Разработка\n'
-            '\n'
-            f'Добавляйте свои сценарии в папку `{args.target_dir}/scenarios/`.\n'
-            'Помечайте класс декоратором `@register_scenario("имя")`.\n'
-            'Сценарии подхватятся автоматически через `ScenarioRegistry.discover(...)`.\n'
         )
         readme_project.write_text(content, encoding="utf-8")
         print(f"Создан: {readme_project}")
     else:
-        print(f"Файл {readme_project} уже существует, пропускаем (используйте --force для перезаписи).")
+        print(f"Файл {readme_project} уже существует, пропускаем (--force для перезаписи).")
 
-    print("\nИнициализация завершена. Теперь вы можете:")
-    print("  1. Отредактировать .core-package.env под свои нужды.")
-    print(f"  2. Изучить примеры в папке {args.target_dir}/examples/.")
-    print(f"  3. Запустить рабочий пример: python {args.target_dir}/examples/main_example.py")
-    print("  4. Начать разработку своих сценариев.")
+    print("\nИнициализация завершена:")
+    print("  1. Отредактируйте .core-package.env.")
+    print(f"  2. Изучите примеры в {args.target_dir}/examples/.")
+    print(f"  3. Запустите: python {args.target_dir}/examples/main_example.py")

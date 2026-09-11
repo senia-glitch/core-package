@@ -36,9 +36,9 @@ def test_core_init_creates_files():
         examples = core_project / "examples"
         assert examples.exists()
         assert (examples / "example_scenario.py").exists()
-        assert (examples / "event_infra_adapter.py").exists()
-        assert (examples / "main_example.py").exists()  # изменено с run_example.py
-
+        assert (examples / "main_example.py").exists()
+        assert (examples / "main_with_event_infra_example.py").exists()
+        assert (examples / "README.md").exists()
 
 def test_core_init_does_not_overwrite_without_force():
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
@@ -90,3 +90,16 @@ def test_core_init_overwrites_with_force():
         new_content = env_file.read_text(encoding="utf-8")
         assert new_content != "custom content"
         assert "# Конфигурация core-package" in new_content
+
+
+def test_copy_template_nonexistent_returns_false(tmp_path, capsys):
+    """Если шаблона нет в пакете — _copy_template вернёт False."""
+    from core.cli import _copy_template
+
+    dest = tmp_path / "out.txt"
+    ok = _copy_template("this_template_does_not_exist_xyz.txt", dest, force=True)
+    assert ok is False
+    assert not dest.exists()
+
+    captured = capsys.readouterr()
+    assert "Ошибка чтения шаблона" in captured.out
