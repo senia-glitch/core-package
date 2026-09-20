@@ -1,10 +1,13 @@
 """Декораторы для сценариев: регистрация и сбор метрик."""
 
 import functools
+import logging
 import time
 from typing import Any, Awaitable, Callable, Type, TypeVar
 
 from .metrics import get_metrics
+
+_logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 C = TypeVar("C", bound=type)
@@ -20,6 +23,9 @@ def track_metrics(
     """
 
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
+        if getattr(func, "_core_metrics_wrapped", False):
+            return func
+
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> T:
             instance = args[0] if args else None
@@ -42,9 +48,9 @@ def track_metrics(
                         scenario=scenario_name,
                         error=error,
                     )
-                except Exception:
-                    # fail-open: игнорируем ошибки метрик
-                    pass
+                except Exception as e:
+                    # fail-open: логируем, но не ломаем вызов
+                    _logger.warning("Failed to record metrics: %s", e)
 
         wrapper._core_metrics_wrapped = True
         return wrapper
@@ -65,7 +71,6 @@ def tracked_scenario(name: str):
     def decorator(cls: C) -> C:
         original_execute = cls.execute
         cls.execute = track_metrics(name)(original_execute)
-        cls.execute._core_metrics_wrapped = True
         return cls
 
     return decorator

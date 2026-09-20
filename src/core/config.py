@@ -29,7 +29,7 @@ def _find_env_file() -> Optional[Path]:
 
 
 env_file = _find_env_file()
-if env_file:
+if env_file and os.getenv("CORE_SKIP_DOTENV", "").lower() not in ("true", "1", "yes"):
     load_dotenv(env_file)
 
 

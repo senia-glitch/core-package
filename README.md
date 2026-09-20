@@ -9,7 +9,7 @@
 - Интерфейсы для внешних зависимостей: БД, кеш, логгер, метрики.
 - Базовый класс `BaseScenario` и реестр сценариев.
 - Утилиты: безопасность (bcrypt, JWT), работа с датами, валидаторы.
-- Встроенные реализации: `InMemoryCache`, `ConsoleLogger`, `InMemoryMetrics`.
+- Встроенные реализации: `TTLCache` (алиасы `FIFOCache`, `InMemoryCache`), `ConsoleLogger`, `InMemoryMetrics`.
 - CLI-команду `core-init` для быстрой инициализации проекта.
 - Опциональный адаптер к пакету `event-infra`.
 
@@ -138,6 +138,16 @@ reset_core()
 await start_core(db=db2)
 ```
 
+### Завершение работы
+
+Для корректного завершения (graceful shutdown) используйте `shutdown_core()`:
+
+```python
+from core import shutdown_core
+
+await shutdown_core()  # очищает кеш и сбрасывает состояние
+```
+
 ## Связка с event-infra
 
 `core-package` и `event-infra` — независимые пакеты. Первый — про сценарии и абстракции, второй — про работу с PostgreSQL. Связываются они **опционально** через адаптер `EventInfraDatabaseAdapter`, который живёт внутри `core.adapters.event_infra` и импортируется лениво.
@@ -193,7 +203,7 @@ async def main():
 await start_core(db=MyInMemoryDatabase())
 ```
 
-`start_core()` **не подставляет in-memory БД по умолчанию** — это осознанное решение, чтобы поведение было предсказуемым.
+`start_core()` **не подставляет in-memory БД по умолчанию** — это осознанное решение, чтобы поведение было предсказуемым. `cache`, `logger` и `metrics` получают in-memory реализации автоматически, если не переданы явно.
 
 ## Команда `core-init`
 
@@ -220,11 +230,11 @@ core-init [--force] [--target-dir core_project]
 
 Все интерфейсы — `Protocol`, не привязаны к реализациям.
 
-- `IDatabase` — `create`, `read`, `update`, `delete`, `custom`.
+- `IDatabase` — `create`, `read`, `update`, `delete`, `query`.
+- `EventInfraDatabaseAdapter` также предоставляет deprecated `custom()` (обёртка над `query()`).
 - `ICache` — `get`, `set`, `delete`, `clear`.
 - `ILogger` — `debug`, `info`, `warning`, `error`, `critical`.
 - `IMetrics` — `record`, `increment`.
-- `ITransactionalDatabase` — расширяет `IDatabase` транзакциями.
 
 ### BaseScenario
 
@@ -234,7 +244,7 @@ class MyScenario(BaseScenario):
         ...
 ```
 
-Конструктор: `db` (обязательно), `cache`, `logger`, `metrics` (опционально). Метрики **не** включаются автоматически — используйте декоратор.
+`BaseScenario` — абстрактный класс (`ABC`). Конструктор: `db` (обязательно), `cache`, `logger`, `metrics` (опционально). Метрики **не** включаются автоматически — используйте декоратор.
 
 ### Регистрация сценариев
 
@@ -308,16 +318,16 @@ raise NotFoundError("User not found")
 
 ### Встроенные реализации
 
-**Логирование.** `ConsoleLogger` — пишет в stdout или файл. Уровень читается динамически из `CORE_LOG_LEVEL`. Handler добавляется один раз.
+**Логирование.** `ConsoleLogger` — пишет в stdout или файл. Уровень устанавливается при инициализации из `CORE_LOG_LEVEL`. Handler добавляется один раз.
 
-**Метрики.** `InMemoryMetrics` — calls, errors, total/min/max/avg по каждому сценарию. Глобальный синглтон `get_metrics()` или свой экземпляр. Отключается через `CORE_METRICS_ENABLED=false`.
+**Метрики.** `InMemoryMetrics` — calls, errors, total/min/max/avg по каждому сценарию. Потокобезопасен (`asyncio.Lock`). Глобальный синглтон `get_metrics()` или свой экземпляр. Отключается через `CORE_METRICS_ENABLED=false`.
 
-**Кеш.** `InMemoryCache` — `asyncio.Lock`, TTL на элемент, вытеснение самого старого при переполнении.
+**Кеш.** `TTLCache` (алиасы `FIFOCache`, `InMemoryCache`) — `asyncio.Lock`, TTL на элемент, вытеснение по времени истечения при переполнении.
 
 ```python
-from core import InMemoryCache
+from core import TTLCache
 
-cache = InMemoryCache(ttl_seconds=60, max_size=1000)
+cache = TTLCache(ttl_seconds=60, max_size=1000)
 await cache.set("key", "value")
 value = await cache.get("key")
 ```
@@ -336,6 +346,8 @@ value = await cache.get("key")
 | `CORE_LOG_LEVEL` | Уровень логирования | `INFO` |
 | `CORE_LOG_FILE` | Путь к файлу лога (пусто — stdout) | пусто |
 | `CORE_ENV_PATH` | Явный путь к `.core-package.env` | пусто |
+| `CORE_ENV` | Режим окружения (`production` включает проверку JWT) | пусто |
+| `CORE_SKIP_DOTENV` | Пропустить загрузку `.core-package.env` (`true/1/yes`) | пусто |
 
 ## Расширение
 
@@ -348,7 +360,7 @@ value = await cache.get("key")
 
 ### Своя реализация IDatabase
 
-Реализуйте методы `create`/`read`/`update`/`delete`/`custom`, передайте в `start_core(db=...)`.
+Реализуйте методы `create`/`read`/`update`/`delete`/`query`, передайте в `start_core(db=...)`.
 
 Примеры в `core_project/examples/` после `core-init`.
 

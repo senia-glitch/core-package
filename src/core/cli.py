@@ -9,24 +9,28 @@ from pathlib import Path
 from importlib import resources
 
 
-def _copy_template(template_name: str, dest: Path, force: bool = False) -> bool:
-    """Копирует шаблон из пакета в указанное место."""
+def _copy_template(template_name: str, dest: Path, force: bool = False) -> str:
+    """Копирует шаблон из пакета в указанное место.
+
+    Returns:
+        "ok" — успешно создан, "exists" — файл уже был, "error" — ошибка чтения шаблона.
+    """
     if dest.exists() and not force:
         print(f"Файл {dest} уже существует. Используйте --force для перезаписи.")
-        return False
+        return "exists"
 
     try:
         content = resources.read_text("core", f"templates/{template_name}", encoding="utf-8")
-    except Exception as e:
+    except Exception:
         try:
             content = resources.files("core").joinpath(f"templates/{template_name}").read_text(encoding="utf-8")
-        except Exception:
+        except Exception as e:
             print(f"Ошибка чтения шаблона {template_name}: {e}")
-            return False
+            return "error"
 
     dest.write_text(content, encoding="utf-8")
     print(f"Создан: {dest}")
-    return True
+    return "ok"
 
 
 def _ensure_dir(path: Path) -> None:
@@ -50,7 +54,7 @@ def init() -> None:
     target_path = cwd / args.target_dir
 
     # 1. Конфиг
-    _copy_template("env_template.txt", cwd / ".core-package.env", force)
+    env_status = _copy_template("env_template.txt", cwd / ".core-package.env", force)
 
     # 2. Папки пользовательского кода
     for folder in ["scenarios", "interfaces", "utils"]:
@@ -71,18 +75,16 @@ def init() -> None:
     examples_dir = target_path / "examples"
     _ensure_dir(examples_dir)
 
-    _copy_template("scenario_template.py", examples_dir / "example_scenario.py", force)
-    _copy_template("main_template.py", examples_dir / "main_example.py", force)
-    _copy_template(
-        "main_with_event_infra_template.py",
-        examples_dir / "main_with_event_infra_example.py",
-        force,
-    )
-    _copy_template(
-        "examples_readme_template.md",
-        examples_dir / "README.md",
-        force,
-    )
+    template_errors = []
+    for tpl, dest_name in [
+        ("scenario_template.py", "example_scenario.py"),
+        ("main_template.py", "main_example.py"),
+        ("main_with_event_infra_template.py", "main_with_event_infra_example.py"),
+        ("examples_readme_template.md", "README.md"),
+    ]:
+        result = _copy_template(tpl, examples_dir / dest_name, force)
+        if result == "error":
+            template_errors.append(tpl)
 
     # 4. pyproject.toml
     pyproject = cwd / "pyproject.toml"
@@ -124,6 +126,10 @@ def init() -> None:
         print(f"Файл {readme_project} уже существует, пропускаем (--force для перезаписи).")
 
     print("\nИнициализация завершена:")
+    if env_status == "error":
+        print("  ВНИМАНИЕ: не удалось создать .core-package.env")
+    if template_errors:
+        print(f"  ВНИМАНИЕ: не удалось скопировать шаблоны: {', '.join(template_errors)}")
     print("  1. Отредактируйте .core-package.env.")
     print(f"  2. Изучите примеры в {args.target_dir}/examples/.")
     print(f"  3. Запустите: python {args.target_dir}/examples/main_example.py")

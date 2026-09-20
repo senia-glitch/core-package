@@ -28,11 +28,11 @@ async def test_base_scenario_execute():
 
 
 @pytest.mark.asyncio
-async def test_base_scenario_execute_not_implemented():
+async def test_base_scenario_cannot_be_instantiated():
+    """BaseScenario — абстрактный, его нельзя инстанцировать напрямую."""
     db = object()
-    base = BaseScenario(db=db)
-    with pytest.raises(NotImplementedError):
-        await base.execute({})
+    with pytest.raises(TypeError, match="abstract"):
+        BaseScenario(db=db)
 
 
 def test_no_auto_metrics():

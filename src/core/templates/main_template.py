@@ -62,8 +62,8 @@ class InMemoryDatabase(IDatabase):
             return True
         return False
 
-    async def custom(self, sql: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
-        parts = sql.lower().split("from")
+    async def query(self, description: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
+        parts = description.lower().split("from")
         if len(parts) > 1:
             table = parts[1].strip().split()[0]
             if table in self._data:

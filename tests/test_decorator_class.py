@@ -2,7 +2,7 @@
 """Тесты декоратора класса tracked_scenario."""
 
 import pytest
-from core import BaseScenario, tracked_scenario, get_metrics, InMemoryMetrics
+from core import BaseScenario, tracked_scenario, get_metrics, InMemoryMetrics, reset_metrics
 from core.interfaces import IDatabase
 
 
@@ -11,7 +11,7 @@ class DummyDB(IDatabase):
     async def read(self, entity, id): return None
     async def update(self, entity, id, data): return {}
     async def delete(self, entity, id): return True
-    async def custom(self, sql, params): return []
+    async def query(self, description, params): return []
 
 
 @pytest.mark.asyncio
@@ -103,3 +103,4 @@ async def test_tracked_scenario_disabled(monkeypatch):
 
     monkeypatch.undo()
     importlib.reload(core.metrics)
+    reset_metrics()

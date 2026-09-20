@@ -25,6 +25,9 @@ def parse_iso_datetime(value: str) -> datetime:
         ValueError: Если строка не соответствует формату.
     """
     s = value.replace(" ", "T")
+    # fromisoformat не понимает "Z" на Python 3.8–3.10
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
     try:
         dt = datetime.fromisoformat(s)
     except ValueError:
@@ -76,7 +79,15 @@ def format_iso(dt: datetime, with_timezone: bool = False) -> str:
 
     Returns:
         Строка в формате "YYYY-MM-DDTHH:MM:SS" или с "Z" если with_timezone=True.
+
+    Raises:
+        ValueError: Если with_timezone=True, но datetime наивный (без tzinfo).
     """
     if with_timezone:
-        return dt.isoformat() + "Z"
+        if dt.tzinfo is None:
+            raise ValueError(
+                "Cannot add timezone to naive datetime. "
+                "Use datetime with tzinfo or call normalize_timezone() first."
+            )
+        return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
     return dt.isoformat()

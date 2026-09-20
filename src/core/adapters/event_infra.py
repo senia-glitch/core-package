@@ -6,6 +6,7 @@
 но сам core-package работает без него.
 """
 
+import warnings
 from typing import Any, Dict, List, Optional
 
 from ..interfaces import IDatabase
@@ -45,11 +46,11 @@ class EventInfraDatabaseAdapter(IDatabase):
             raise Exception(resp.error.message if resp.error else "Delete failed")
         return resp.count > 0
 
-    async def custom(self, sql: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
+    async def query(self, description: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
         channel = kwargs.get("channel", "read")
-        resp = await self._router.custom(sql, params, channel=channel)
+        resp = await self._router.custom(description, params, channel=channel)
         if not resp.success:
-            raise Exception(resp.error.message if resp.error else "Custom query failed")
+            raise Exception(resp.error.message if resp.error else "Query failed")
         result: List[Dict[str, Any]] = []
         for item in resp.data or []:
             row = item.get("row")
@@ -62,3 +63,12 @@ class EventInfraDatabaseAdapter(IDatabase):
             else:
                 result.append({"value": row})
         return result
+
+    async def custom(self, sql: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
+        """Deprecated: используйте query()."""
+        warnings.warn(
+            "custom() deprecated, use query()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return await self.query(sql, params, **kwargs)

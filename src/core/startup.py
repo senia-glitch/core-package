@@ -13,6 +13,7 @@
 повторный вызов start_core без reset_core() бросает RuntimeError.
 """
 
+import os
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -20,7 +21,7 @@ from .base_scenario import BaseScenario
 from .cache import InMemoryCache
 from .interfaces import ICache, IDatabase, ILogger, IMetrics
 from .logger import ConsoleLogger
-from .metrics import InMemoryMetrics
+from .metrics import InMemoryMetrics, reset_metrics
 from .scenario_registry import ScenarioRegistry
 
 
@@ -94,6 +95,15 @@ async def start_core(
     logger = logger if logger is not None else ConsoleLogger()
     metrics = metrics if metrics is not None else InMemoryMetrics()
 
+    if os.getenv("CORE_ENV", "").lower() == "production":
+        from .config import get_env_var
+        secret = get_env_var("CORE_JWT_SECRET")
+        if not secret or secret == "change-me-in-production":
+            raise RuntimeError(
+                "CORE_JWT_SECRET не установлен или не изменён. "
+                "В production установите безопасный секрет в .core-package.env."
+            )
+
     if discover:
         ScenarioRegistry.discover(discover)
 
@@ -147,7 +157,25 @@ def reset_core() -> None:
 
     Предназначено для тестов и для случаев, когда нужно переинициализировать
     ядро в одном процессе (например, между тестами).
+
+    Внутреннее состояние: ``_state`` — модульный синглтон, ``_scenarios`` —
+    class-level dict в ``ScenarioRegistry``. Оба очищаются здесь.
     """
     global _state
     _state = None
     ScenarioRegistry._scenarios.clear()
+    reset_metrics()
+
+
+async def shutdown_core() -> None:
+    """Корректно завершает работу ядра.
+
+    Очищает кеш и сбрасывает состояние. Используйте при graceful shutdown.
+    """
+    global _state
+    if _state is not None:
+        if hasattr(_state.cache, "clear"):
+            await _state.cache.clear()
+    _state = None
+    ScenarioRegistry._scenarios.clear()
+    reset_metrics()

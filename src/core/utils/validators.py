@@ -6,7 +6,7 @@
 import re
 from typing import Any
 
-from core.exceptions import ValidationError
+from ..exceptions import ValidationError
 
 
 def validate_pagination(limit: int, offset: int) -> None:

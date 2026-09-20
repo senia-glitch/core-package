@@ -4,6 +4,7 @@
 """
 
 import asyncio
+import sys
 import time
 import uuid
 from dataclasses import dataclass
@@ -11,10 +12,18 @@ from typing import Optional
 
 import jwt
 import bcrypt
-from core.config import (
+from ..config import (
     get_env_int,
     get_env_var,
 )
+
+# Polyfill: asyncio.to_thread добавлен в Python 3.9
+if sys.version_info >= (3, 9):
+    _to_thread = asyncio.to_thread
+else:
+    async def _to_thread(func, *args, **kwargs):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
 
 # Загрузка конфигурации из переменных окружения
 JWT_SECRET = get_env_var("CORE_JWT_SECRET", "change-me-in-production")
@@ -41,7 +50,7 @@ async def hash_password(password: str) -> str:
     Returns:
         Хеш пароля в виде строки.
     """
-    return await asyncio.to_thread(_hash_password_sync, password)
+    return await _to_thread(_hash_password_sync, password)
 
 
 def _hash_password_sync(password: str) -> str:
@@ -61,7 +70,7 @@ async def verify_password(password: str, hashed: str) -> bool:
     Returns:
         True, если пароль совпадает.
     """
-    return await asyncio.to_thread(_verify_password_sync, password, hashed)
+    return await _to_thread(_verify_password_sync, password, hashed)
 
 
 def _verify_password_sync(password: str, hashed: str) -> bool:
@@ -82,8 +91,8 @@ def create_access_token(user_id: int, role: str, secret: Optional[str] = None, e
     Returns:
         JWT-токен в виде строки.
     """
-    secret = secret or JWT_SECRET
-    expires_in = expires_in or ACCESS_TOKEN_MINUTES
+    secret = secret if secret is not None else JWT_SECRET
+    expires_in = expires_in if expires_in is not None else ACCESS_TOKEN_MINUTES
     now = int(time.time())
     payload = {
         "sub": str(user_id),
@@ -107,8 +116,8 @@ def create_refresh_token(user_id: int, secret: Optional[str] = None, expires_in:
     Returns:
         JWT-токен в виде строки.
     """
-    secret = secret or JWT_SECRET
-    expires_in = expires_in or REFRESH_TOKEN_DAYS
+    secret = secret if secret is not None else JWT_SECRET
+    expires_in = expires_in if expires_in is not None else REFRESH_TOKEN_DAYS
     now = int(time.time())
     payload = {
         "sub": str(user_id),
@@ -133,7 +142,7 @@ def decode_token(token: str, secret: Optional[str] = None) -> dict:
     Raises:
         jwt.InvalidTokenError: Если токен недействителен.
     """
-    secret = secret or JWT_SECRET
+    secret = secret if secret is not None else JWT_SECRET
     return jwt.decode(token, secret, algorithms=["HS256"])
 
 
@@ -148,10 +157,11 @@ def extract_token_info(token: str, secret: Optional[str] = None) -> TokenInfo:
         TokenInfo с user_id и role.
 
     Raises:
-        jwt.InvalidTokenError: Если токен недействителен.
+        jwt.InvalidTokenError: Если токен недействителен или payload некорректен.
     """
     payload = decode_token(token, secret)
-    return TokenInfo(
-        user_id=int(payload["sub"]),
-        role=payload.get("role", ""),
-    )
+    try:
+        user_id = int(payload["sub"])
+    except (KeyError, ValueError, TypeError) as e:
+        raise jwt.InvalidTokenError(f"Invalid token payload: {e}") from e
+    return TokenInfo(user_id=user_id, role=payload.get("role", ""))

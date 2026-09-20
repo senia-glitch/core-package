@@ -1,6 +1,7 @@
 # tests/test_metrics.py
 """Тесты встроенных метрик."""
 
+import asyncio
 import pytest
 from core import InMemoryMetrics, get_metrics
 
@@ -86,3 +87,48 @@ async def test_metrics_avg_zero_when_no_calls():
     assert len(stats) == 1
     assert stats[0].calls == 0
     assert stats[0].avg_time_ms == 0.0
+
+
+@pytest.mark.asyncio
+async def test_metrics_min_time_ms_safe():
+    """min_time_ms_safe возвращает 0.0 при отсутствии вызовов и реальное минимум иначе."""
+    metrics = InMemoryMetrics()
+    await metrics.record("s", 100.0, scenario="s")
+    await metrics.record("s", 50.0, scenario="s")
+    stats = metrics.get_stats()
+    assert stats[0].min_time_ms_safe == 50.0
+
+
+@pytest.mark.asyncio
+async def test_metrics_max_time_ms_safe():
+    """max_time_ms_safe возвращает 0.0 при отсутствии вызовов и реальное максимум иначе."""
+    metrics = InMemoryMetrics()
+    await metrics.record("s", 100.0, scenario="s")
+    await metrics.record("s", 200.0, scenario="s")
+    stats = metrics.get_stats()
+    assert stats[0].max_time_ms_safe == 200.0
+
+
+@pytest.mark.asyncio
+async def test_metrics_min_max_safe_zero_when_no_calls():
+    """Если сценарий не вызывался (только increment), min/max = 0.0."""
+    metrics = InMemoryMetrics()
+    await metrics.increment("s", scenario="s", error=True)
+    stats = metrics.get_stats()
+    assert stats[0].min_time_ms_safe == 0.0
+    assert stats[0].max_time_ms_safe == 0.0
+
+
+@pytest.mark.asyncio
+async def test_metrics_concurrent_access():
+    """Проверяем потокобезопасность: 50 параллельных record() без ошибок."""
+    metrics = InMemoryMetrics()
+
+    async def worker(i):
+        await metrics.record(f"s{i % 5}", 10.0, scenario=f"s{i % 5}")
+
+    await asyncio.gather(*(worker(i) for i in range(50)))
+
+    stats = metrics.get_stats()
+    total_calls = sum(s.calls for s in stats)
+    assert total_calls == 50

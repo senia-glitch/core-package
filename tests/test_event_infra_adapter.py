@@ -2,7 +2,6 @@
 """Тесты адаптера EventInfraDatabaseAdapter (без установки event-infra)."""
 
 from types import SimpleNamespace
-from typing import Any, Dict, List
 
 import pytest
 
@@ -209,44 +208,49 @@ async def test_delete_failure_no_error_message():
 
 @pytest.mark.asyncio
 async def test_custom_success_with_mapping():
-    """row с _mapping (как asyncpg.Row)."""
+    """row с _mapping (как asyncpg.Row). custom() deprecated — проверяем warning."""
     rows = [{"row": FakeRow({"id": 1, "name": "Alice"})}]
     adapter = EventInfraDatabaseAdapter(FakeRouter(FakeResponse(data=rows)))
-    result = await adapter.custom("SELECT * FROM users", {}, channel="read")
+    with pytest.warns(DeprecationWarning, match="custom\\(\\) deprecated"):
+        result = await adapter.custom("SELECT * FROM users", {}, channel="read")
     assert result == [{"id": 1, "name": "Alice"}]
 
 
 @pytest.mark.asyncio
 async def test_custom_success_with_dict():
-    """row как обычный dict."""
+    """row как обычный dict. custom() deprecated — проверяем warning."""
     rows = [{"row": {"id": 2, "name": "Bob"}}]
     adapter = EventInfraDatabaseAdapter(FakeRouter(FakeResponse(data=rows)))
-    result = await adapter.custom("SELECT * FROM users", {})
+    with pytest.warns(DeprecationWarning, match="custom\\(\\) deprecated"):
+        result = await adapter.custom("SELECT * FROM users", {})
     assert result == [{"id": 2, "name": "Bob"}]
 
 
 @pytest.mark.asyncio
 async def test_custom_success_with_scalar():
-    """row как скаляр (например COUNT(*))."""
+    """row как скаляр (например COUNT(*)). custom() deprecated — проверяем warning."""
     rows = [{"row": 42}]
     adapter = EventInfraDatabaseAdapter(FakeRouter(FakeResponse(data=rows)))
-    result = await adapter.custom("SELECT COUNT(*) FROM users", {})
+    with pytest.warns(DeprecationWarning, match="custom\\(\\) deprecated"):
+        result = await adapter.custom("SELECT COUNT(*) FROM users", {})
     assert result == [{"value": 42}]
 
 
 @pytest.mark.asyncio
 async def test_custom_skips_none_rows():
-    """row=None пропускается."""
+    """row=None пропускается. custom() deprecated — проверяем warning."""
     rows = [{"row": None}, {"row": {"id": 1}}]
     adapter = EventInfraDatabaseAdapter(FakeRouter(FakeResponse(data=rows)))
-    result = await adapter.custom("SELECT * FROM users", {})
+    with pytest.warns(DeprecationWarning, match="custom\\(\\) deprecated"):
+        result = await adapter.custom("SELECT * FROM users", {})
     assert result == [{"id": 1}]
 
 
 @pytest.mark.asyncio
 async def test_custom_empty_data():
     adapter = EventInfraDatabaseAdapter(FakeRouter(FakeResponse(data=[])))
-    result = await adapter.custom("SELECT * FROM users", {})
+    with pytest.warns(DeprecationWarning, match="custom\\(\\) deprecated"):
+        result = await adapter.custom("SELECT * FROM users", {})
     assert result == []
 
 
@@ -255,12 +259,36 @@ async def test_custom_failure_raises():
     adapter = EventInfraDatabaseAdapter(
         FakeRouter(FakeResponse(success=False, error_message="syntax error"))
     )
-    with pytest.raises(Exception, match="syntax error"):
-        await adapter.custom("BAD SQL", {})
+    with pytest.warns(DeprecationWarning, match="custom\\(\\) deprecated"):
+        with pytest.raises(Exception, match="syntax error"):
+            await adapter.custom("BAD SQL", {})
 
 
 @pytest.mark.asyncio
 async def test_custom_failure_no_error_message():
     adapter = EventInfraDatabaseAdapter(FakeRouter(FakeResponse(success=False)))
-    with pytest.raises(Exception, match="Custom query failed"):
-        await adapter.custom("BAD SQL", {})
+    with pytest.warns(DeprecationWarning, match="custom\\(\\) deprecated"):
+        with pytest.raises(Exception, match="Query failed"):
+            await adapter.custom("BAD SQL", {})
+
+
+# ============================================================
+# query() — основной метод
+# ============================================================
+
+@pytest.mark.asyncio
+async def test_query_success_with_mapping():
+    """query() — row с _mapping (как asyncpg.Row)."""
+    rows = [{"row": FakeRow({"id": 1, "name": "Alice"})}]
+    adapter = EventInfraDatabaseAdapter(FakeRouter(FakeResponse(data=rows)))
+    result = await adapter.query("SELECT * FROM users", {})
+    assert result == [{"id": 1, "name": "Alice"}]
+
+
+@pytest.mark.asyncio
+async def test_query_failure_raises():
+    adapter = EventInfraDatabaseAdapter(
+        FakeRouter(FakeResponse(success=False, error_message="bad query"))
+    )
+    with pytest.raises(Exception, match="bad query"):
+        await adapter.query("BAD QUERY", {})

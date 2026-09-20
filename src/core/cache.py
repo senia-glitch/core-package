@@ -3,16 +3,24 @@
 
 import asyncio
 import time
-from typing import Any, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from .interfaces import ICache
 
 
-class InMemoryCache(ICache):
-    """Простой in-memory кеш с TTL, ограничением размера и защитой от гонок."""
+class TTLCache(ICache):
+    """In-memory кеш с TTL, ограничением размера и вытеснением по времени истечения.
+
+    При переполнении удаляется элемент с самым ранним временем истечения.
+    Потокобезопасен благодаря asyncio.Lock.
+    """
 
     def __init__(self, ttl_seconds: int = 60, max_size: int = 1000):
-        self._cache: dict[str, tuple[float, Any]] = {}
+        if max_size < 1:
+            raise ValueError(f"max_size must be >= 1, got {max_size}")
+        if ttl_seconds < 1:
+            raise ValueError(f"ttl_seconds must be >= 1, got {ttl_seconds}")
+        self._cache: Dict[str, Tuple[float, Any]] = {}
         self._ttl = ttl_seconds
         self._max_size = max_size
         self._lock = asyncio.Lock()
@@ -28,7 +36,7 @@ class InMemoryCache(ICache):
 
     async def set(self, key: str, value: Any, ttl: Optional[int] = None, **kwargs) -> None:
         async with self._lock:
-            if len(self._cache) >= self._max_size:
+            if key not in self._cache and len(self._cache) >= self._max_size:
                 oldest = min(self._cache, key=lambda k: self._cache[k][0])
                 del self._cache[oldest]
             ttl_seconds = ttl if ttl is not None else self._ttl
@@ -45,4 +53,10 @@ class InMemoryCache(ICache):
 
     @property
     def size(self) -> int:
+        """Текущий размер кеша. Безопасно для single-threaded asyncio (GIL)."""
         return len(self._cache)
+
+
+# Aliases
+FIFOCache = TTLCache  # Deprecated: use TTLCache
+InMemoryCache = TTLCache  # Deprecated: use TTLCache

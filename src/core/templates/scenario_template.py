@@ -5,8 +5,9 @@
 """
 
 from pydantic import BaseModel
-from core import BaseScenario, IDatabase, ICache, ILogger, IMetrics
+from core import BaseScenario
 from core.exceptions import NotFoundError
+from core import register_scenario, tracked_scenario
 
 
 # 1. Определите DTO для входных данных
@@ -23,7 +24,9 @@ class MyScenarioResponse(BaseModel):
     greeting: str
 
 
-# 3. Создайте класс сценария
+# 3. Создайте класс сценария и зарегистрируйте его
+@register_scenario("my_scenario")
+@tracked_scenario("my_scenario")
 class MyScenario(BaseScenario):
     """Пример сценария: приветствие пользователя по ID."""
 
@@ -48,16 +51,12 @@ class MyScenario(BaseScenario):
             cache_key = f"user_greeting:{dto.user_id}"
             await self._cache.set(cache_key, f"Hello, {user['name']}!", ttl=60)
 
-        # Собираем метрику
-        if self._metrics:
-            await self._metrics.increment("my_scenario_executed", user_id=dto.user_id)
-
         return MyScenarioResponse(
             user_id=user["id"],
             greeting=f"Hello, {user['name']}!",
         )
 
 
-# 4. Зарегистрируйте сценарий через декоратор @register_scenario("my_scenario").
+# 4. Сценарий зарегистрирован через @register_scenario("my_scenario").
 #    Автозагрузка из пакета — через ScenarioRegistry.discover("my_project.scenarios"),
 #    которая обычно вызывается внутри start_core(discover="my_project.scenarios").

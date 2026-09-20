@@ -1,11 +1,12 @@
 # src/core/base_scenario.py
 """Базовый класс для всех бизнес-сценариев."""
 
+from abc import ABC, abstractmethod
 from typing import Any, Optional
 from .interfaces import IDatabase, ICache, ILogger, IMetrics
 
 
-class BaseScenario:
+class BaseScenario(ABC):
     """Абстрактный базовый класс для сценариев.
 
     Сценарий получает зависимости через конструктор и реализует метод execute.
@@ -25,5 +26,6 @@ class BaseScenario:
         self._logger = logger
         self._metrics = metrics
 
+    @abstractmethod
     async def execute(self, dto: Any) -> Any:
-        raise NotImplementedError("Метод execute должен быть переопределён")
+        ...

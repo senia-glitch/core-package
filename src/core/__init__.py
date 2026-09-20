@@ -1,7 +1,7 @@
 """core-package: платформа для построения бизнес-сценариев.
 
 Экспортирует основные компоненты:
-- Интерфейсы: IDatabase, ICache, ILogger, IMetrics, ITransactionalDatabase
+- Интерфейсы: IDatabase, ICache, ILogger, IMetrics
 - BaseScenario, ScenarioRegistry
 - Исключения, утилиты
 - Встроенные логгер, метрики и кеш
@@ -9,15 +9,18 @@
 - Точку входа: start_core, run, get_scenario и get-функции для зависимостей
 """
 
-from .interfaces import IDatabase, ICache, ILogger, IMetrics, ITransactionalDatabase
+__version__ = "0.2.0"
+
+from .interfaces import IDatabase, ICache, ILogger, IMetrics
 from .base_scenario import BaseScenario
 from .scenario_registry import ScenarioRegistry
 from .exceptions import CoreError, NotFoundError, ValidationError, ConflictError
 from .dto import BaseDTO
 from . import utils
 from .logger import ConsoleLogger
-from .metrics import InMemoryMetrics, get_metrics
-from .cache import InMemoryCache
+from .metrics import InMemoryMetrics, get_metrics, reset_metrics
+from .cache import TTLCache, FIFOCache, InMemoryCache
+from .types import ID, JSON
 from .decorators import track_metrics, tracked_scenario, register_scenario
 from .startup import (
     start_core,
@@ -28,6 +31,7 @@ from .startup import (
     get_logger,
     get_core_metrics,
     reset_core,
+    shutdown_core,
 )
 
 __all__ = [
@@ -35,7 +39,6 @@ __all__ = [
     "ICache",
     "ILogger",
     "IMetrics",
-    "ITransactionalDatabase",
     "BaseScenario",
     "ScenarioRegistry",
     "CoreError",
@@ -46,8 +49,13 @@ __all__ = [
     "utils",
     "ConsoleLogger",
     "InMemoryMetrics",
+    "TTLCache",
+    "FIFOCache",
     "InMemoryCache",
+    "ID",
+    "JSON",
     "get_metrics",
+    "reset_metrics",
     "track_metrics",
     "tracked_scenario",
     "register_scenario",
@@ -60,4 +68,5 @@ __all__ = [
     "get_logger",
     "get_core_metrics",
     "reset_core",
+    "shutdown_core",
 ]

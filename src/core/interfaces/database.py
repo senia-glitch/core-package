@@ -65,11 +65,11 @@ class IDatabase(Protocol):
         """
         ...
 
-    async def custom(self, sql: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
-        """Выполняет произвольный SQL-запрос.
+    async def query(self, description: str, params: Dict[str, Any], **kwargs) -> List[Dict[str, Any]]:
+        """Выполняет произвольный запрос.
 
         Args:
-            sql: SQL-запрос с плейсхолдерами (например, :id).
+            description: Описание запроса (SQL, pipeline, expression и т.д.).
             params: Словарь параметров для подстановки.
             **kwargs: Дополнительные параметры.
 

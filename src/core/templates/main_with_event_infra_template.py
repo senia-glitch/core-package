@@ -21,7 +21,7 @@ import asyncio
 # Импорт event-infra: модуль run_infrastructure создаётся командой infra-init
 from run_infrastructure import start_infrastructure
 
-from core import start_core, run
+from core import start_core, run, shutdown_core
 from pydantic import BaseModel
 
 
@@ -56,8 +56,10 @@ async def main():
         print(f"      Ответ: {result}")
 
     finally:
-        # 4. Корректное завершение event-infra
-        print("\nОстановка event-infra...")
+        # 4. Корректное завершение
+        print("\nОстановка core-package...")
+        await shutdown_core()
+        print("Остановка event-infra...")
         await router.shutdown()
         print("Готово.")
 

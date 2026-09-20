@@ -23,7 +23,7 @@ class DummyDB(IDatabase):
     async def read(self, entity, id): return None
     async def update(self, entity, id, data): return {}
     async def delete(self, entity, id): return True
-    async def custom(self, sql, params): return []
+    async def query(self, description, params): return []
 
 
 @pytest.fixture(autouse=True)
@@ -138,3 +138,32 @@ async def test_start_core_router_but_adapter_unavailable(monkeypatch):
 
     with pytest.raises(ImportError, match="Для передачи router установите event-infra"):
         await start_core(router=object())
+
+
+@pytest.mark.asyncio
+async def test_shutdown_core_clears_state():
+    """shutdown_core() сбрасывает ядро — get_db() бросает RuntimeError."""
+    from core import shutdown_core
+    await start_core(db=DummyDB())
+    assert get_db() is not None
+    await shutdown_core()
+    with pytest.raises(RuntimeError, match="Ядро не запущено"):
+        get_db()
+
+
+@pytest.mark.asyncio
+async def test_start_core_rejects_default_jwt_in_production(monkeypatch):
+    """В production с дефолтным JWT-секретом — RuntimeError."""
+    monkeypatch.setenv("CORE_ENV", "production")
+    monkeypatch.setenv("CORE_JWT_SECRET", "change-me-in-production")
+    with pytest.raises(RuntimeError, match="CORE_JWT_SECRET"):
+        await start_core(db=DummyDB())
+
+
+@pytest.mark.asyncio
+async def test_start_core_rejects_empty_jwt_in_production(monkeypatch):
+    """В production с пустым JWT-секретом — RuntimeError."""
+    monkeypatch.setenv("CORE_ENV", "production")
+    monkeypatch.delenv("CORE_JWT_SECRET", raising=False)
+    with pytest.raises(RuntimeError, match="CORE_JWT_SECRET"):
+        await start_core(db=DummyDB())

@@ -125,8 +125,23 @@ def test_format_iso():
     formatted = format_iso(dt)
     assert formatted == "2026-01-01T10:00:00"
 
-    formatted_z = format_iso(dt, with_timezone=True)
+    with pytest.raises(ValueError, match="naive datetime"):
+        format_iso(dt, with_timezone=True)
+
+    from datetime import timezone
+    dt_utc = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+    formatted_z = format_iso(dt_utc, with_timezone=True)
     assert formatted_z == "2026-01-01T10:00:00Z"
+
+
+def test_parse_iso_datetime_with_z_suffix():
+    """parse_iso_datetime корректно парсит 'Z' суффикс (совместимость с 3.8-3.10)."""
+    from core.utils.datetime_utils import parse_iso_datetime
+    dt = parse_iso_datetime("2026-01-01T10:00:00Z")
+    assert dt.year == 2026
+    assert dt.month == 1
+    assert dt.hour == 10
+    assert dt.tzinfo is None
 
 
 def test_validate_pagination():

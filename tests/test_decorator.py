@@ -1,8 +1,7 @@
 # tests/test_decorator.py
 """Тесты декоратора метрик."""
-import os
 import pytest
-from core import track_metrics, get_metrics, InMemoryMetrics
+from core import track_metrics, get_metrics, InMemoryMetrics, reset_metrics
 
 
 @pytest.mark.asyncio
@@ -90,6 +89,7 @@ async def test_track_metrics_disabled(monkeypatch):
 
     monkeypatch.undo()
     importlib.reload(core.metrics)
+    reset_metrics()
 
 
 @pytest.mark.asyncio
@@ -113,3 +113,22 @@ async def test_track_metrics_swallows_metrics_errors():
 
     result = await Dummy().method()
     assert result == "ok"
+
+
+@pytest.mark.asyncio
+async def test_track_metrics_no_double_wrapping():
+    """Повторный @track_metrics не создаёт двойную обёртку."""
+    metrics = get_metrics()
+    metrics.clear()
+
+    @track_metrics("double_wrap")
+    @track_metrics("double_wrap")
+    async def dummy_func():
+        return "ok"
+
+    result = await dummy_func()
+    assert result == "ok"
+
+    stats = metrics.get_stats()
+    assert len(stats) == 1
+    assert stats[0].calls == 1
