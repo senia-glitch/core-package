@@ -128,8 +128,45 @@ def get_scenario(name: str) -> BaseScenario:
 
 
 async def run(name: str, dto: Any) -> Any:
-    """Создаёт сценарий по имени и выполняет его."""
-    return await get_scenario(name).execute(dto)
+    """Создаёт сценарий по имени и выполняет его.
+
+    Если при регистрации сценария указана dto-модель, переданный объект
+    проверяется на соответствие (isinstance). Если указан response-модель,
+    результат execute прогоняется через неё.
+
+    Raises:
+        ValueError: если dto не является инстансом ожидаемого DTO-класса.
+        ValidationError: если результат execute не прошёл валидацию response-модели.
+    """
+    entry = ScenarioRegistry.get_entry(name)
+
+    if entry.dto is not None and not isinstance(dto, entry.dto):
+        expected = entry.dto.__name__
+        actual = type(dto).__name__
+        raise ValueError(
+            f"Для сценария '{name}' ожидался DTO {expected}, "
+            f"получен {actual}"
+        )
+
+    st = _require_state()
+    scenario = entry.scenario_cls(
+        db=st.db,
+        cache=st.cache,
+        logger=st.logger,
+        metrics=st.metrics,
+    )
+    result = await scenario.execute(dto)
+
+    if entry.response is not None:
+        if isinstance(result, entry.response):
+            return result
+        if isinstance(result, dict):
+            return entry.response(**result)
+        if hasattr(result, "model_dump"):
+            return entry.response(**result.model_dump())
+        return entry.response.model_validate(result)
+
+    return result
 
 
 def get_db() -> IDatabase:

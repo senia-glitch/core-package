@@ -7,6 +7,7 @@ import asyncio
 import sys
 import time
 import uuid
+import warnings
 from dataclasses import dataclass
 from typing import Optional
 
@@ -30,6 +31,15 @@ JWT_SECRET = get_env_var("CORE_JWT_SECRET", "change-me-in-production")
 ACCESS_TOKEN_MINUTES = get_env_int("CORE_ACCESS_TOKEN_MINUTES", 15)
 REFRESH_TOKEN_DAYS = get_env_int("CORE_REFRESH_TOKEN_DAYS", 30)
 BCRYPT_ROUNDS = get_env_int("CORE_BCRYPT_ROUNDS", 12)
+
+if JWT_SECRET == "change-me-in-production":
+    warnings.warn(
+        "CORE_JWT_SECRET не установлен — используется дефолтный. "
+        "Для безопасности создайте .core-package.env с уникальным секретом. "
+        "Предупреждение подавляется установкой CORE_JWT_SECRET в переменных окружения.",
+        UserWarning,
+        stacklevel=2,
+    )
 
 
 @dataclass

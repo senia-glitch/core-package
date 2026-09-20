@@ -25,7 +25,7 @@ class MyScenarioResponse(BaseModel):
 
 
 # 3. Создайте класс сценария и зарегистрируйте его
-@register_scenario("my_scenario")
+@register_scenario("my_scenario", response=MyScenarioResponse, dto=MyScenarioDTO)
 @tracked_scenario("my_scenario")
 class MyScenario(BaseScenario):
     """Пример сценария: приветствие пользователя по ID."""

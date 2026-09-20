@@ -9,11 +9,11 @@
 - Точку входа: start_core, run, get_scenario и get-функции для зависимостей
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 from .interfaces import IDatabase, ICache, ILogger, IMetrics
 from .base_scenario import BaseScenario
-from .scenario_registry import ScenarioRegistry
+from .scenario_registry import ScenarioRegistry, ScenarioEntry
 from .exceptions import CoreError, NotFoundError, ValidationError, ConflictError
 from .dto import BaseDTO
 from . import utils
@@ -41,6 +41,7 @@ __all__ = [
     "IMetrics",
     "BaseScenario",
     "ScenarioRegistry",
+    "ScenarioEntry",
     "CoreError",
     "NotFoundError",
     "ValidationError",

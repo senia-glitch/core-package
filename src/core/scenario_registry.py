@@ -3,11 +3,21 @@
 import importlib
 import logging
 import pkgutil
-from typing import Any, Dict, List, Type
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Type
 
 from .base_scenario import BaseScenario
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ScenarioEntry:
+    """Метаданные зарегистрированного сценария."""
+
+    scenario_cls: Type[BaseScenario]
+    response: Optional[Type] = None
+    dto: Optional[Type] = None
 
 
 class ScenarioRegistry:
@@ -25,18 +35,37 @@ class ScenarioRegistry:
     все модули внутри пакета, и декораторы сработают автоматически.
     """
 
-    _scenarios: Dict[str, Type[BaseScenario]] = {}
+    _scenarios: Dict[str, ScenarioEntry] = {}
 
     @classmethod
-    def register(cls, name: str, scenario_cls: Type[BaseScenario]) -> None:
+    def register(
+        cls,
+        name: str,
+        scenario_cls: Type[BaseScenario],
+        *,
+        response: Optional[Type] = None,
+        dto: Optional[Type] = None,
+    ) -> None:
         """Регистрирует класс сценария под указанным именем.
+
+        Args:
+            name: Уникальное имя сценария.
+            scenario_cls: Класс сценария (наследник BaseScenario).
+            response: Модель ответа (Pydantic BaseModel). Если не передана —
+                сценарий может вернуть любой тип.
+            dto: Модель входных данных (Pydantic BaseModel). Если передана —
+                run() будет валидировать входной объект.
 
         Raises:
             ValueError: если имя уже занято.
         """
         if name in cls._scenarios:
             raise ValueError(f"Scenario '{name}' already registered")
-        cls._scenarios[name] = scenario_cls
+        cls._scenarios[name] = ScenarioEntry(
+            scenario_cls=scenario_cls,
+            response=response,
+            dto=dto,
+        )
 
     @classmethod
     def get(cls, name: str, deps: Dict[str, Any]) -> BaseScenario:
@@ -50,15 +79,45 @@ class ScenarioRegistry:
         Raises:
             ValueError: если сценарий не зарегистрирован.
         """
-        scenario_cls = cls._scenarios.get(name)
-        if not scenario_cls:
+        entry = cls._scenarios.get(name)
+        if not entry:
             raise ValueError(f"Scenario '{name}' not registered")
-        return scenario_cls(**deps)
+        return entry.scenario_cls(**deps)
+
+    @classmethod
+    def get_entry(cls, name: str) -> ScenarioEntry:
+        """Возвращает полную запись сценария (класс + метаданные).
+
+        Raises:
+            ValueError: если сценарий не зарегистрирован.
+        """
+        entry = cls._scenarios.get(name)
+        if not entry:
+            raise ValueError(f"Scenario '{name}' not registered")
+        return entry
+
+    @classmethod
+    def get_response(cls, name: str) -> Optional[Type]:
+        """Возвращает Response-модель сценария или None.
+
+        Raises:
+            ValueError: если сценарий не зарегистрирован.
+        """
+        return cls.get_entry(name).response
+
+    @classmethod
+    def get_dto(cls, name: str) -> Optional[Type]:
+        """Возвращает DTO-модель сценария или None.
+
+        Raises:
+            ValueError: если сценарий не зарегистрирован.
+        """
+        return cls.get_entry(name).dto
 
     @classmethod
     def list_scenarios(cls) -> Dict[str, Type[BaseScenario]]:
         """Возвращает копию словаря зарегистрированных сценариев."""
-        return cls._scenarios.copy()
+        return {name: entry.scenario_cls for name, entry in cls._scenarios.items()}
 
     @classmethod
     def discover(cls, package: str) -> List[str]:

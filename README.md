@@ -10,7 +10,7 @@
 - Базовый класс `BaseScenario` и реестр сценариев.
 - Утилиты: безопасность (bcrypt, JWT), работа с датами, валидаторы.
 - Встроенные реализации: `TTLCache` (алиасы `FIFOCache`, `InMemoryCache`), `ConsoleLogger`, `InMemoryMetrics`.
-- CLI-команду `core-init` для быстрой инициализации проекта.
+- CLI-команды `core-init` (инициализация) и `core-upgrade` (обновление).
 - Опциональный адаптер к пакету `event-infra`.
 
 Пакет **не привязан** к конкретной БД. Он предоставляет абстракции, а конкретные реализации (`IDatabase`, `ICache`, `ILogger`, `IMetrics`) пользователь либо подключает из `event-infra`, либо пишет сам.
@@ -19,8 +19,11 @@
 
 - **Гексагональная архитектура** — чёткое разделение интерфейсов и реализаций.
 - **Точка входа `start_core()`** — единый запуск ядра в вашем проекте.
-- **Регистрация сценариев декоратором** — `@register_scenario("name")`.
+- **Регистрация сценариев декоратором** — `@register_scenario("name", response=..., dto=...)`.
 - **Автозагрузка сценариев** — `start_core(discover="my_project.scenarios")`.
+- **Валидация на этапе импорта** — `__init_subclass__` проверяет наличие `execute(self, dto)`.
+- **Валидация DTO в `run()`** — при передаче `dto=` при регистрации, `run()` проверяет тип входного объекта.
+- **Гарантия Response-модели** — при передаче `response=` при регистрации, `run()` всегда возвращает инстанс этой модели.
 - **Автоматический сбор метрик** — `@track_metrics` и `@tracked_scenario`.
 - **Потокобезопасный in-memory кеш** с TTL и ограничением размера.
 - **Расширяемая система ошибок** — `CoreError` с HTTP-статусами и кодами.
@@ -71,14 +74,22 @@ class MyDTO(BaseModel):
     name: str
 
 
-@register_scenario("greeting")
+class MyResponse(BaseModel):
+    greeting: str
+
+
+@register_scenario("greeting", response=MyResponse, dto=MyDTO)
 class GreetingScenario(BaseScenario):
     async def execute(self, dto: MyDTO):
         user = await self._db.read("users", dto.user_id)
-        return {"greeting": f"Hello, {user['name']}!"}
+        return MyResponse(greeting=f"Hello, {user['name']}!")
 ```
 
-Сценарий получает зависимости (`db`, `cache`, `logger`, `metrics`) через конструктор `BaseScenario`.
+Параметры `response` и `dto` при регистрации — опциональны. Если указаны:
+- `dto` — `run()` проверит, что переданный объект является инстансом этого класса
+- `response` — `run()` гарантированно вернёт инстанс этой модели (автоконвертация из `dict`)
+
+При наследовании `BaseScenario` автоматически проверяется наличие метода `execute(self, dto)` — ошибка возникает на этапе импорта, а не при первом вызове.
 
 ### 3. Запустите из своей точки входа
 
@@ -205,9 +216,11 @@ await start_core(db=MyInMemoryDatabase())
 
 `start_core()` **не подставляет in-memory БД по умолчанию** — это осознанное решение, чтобы поведение было предсказуемым. `cache`, `logger` и `metrics` получают in-memory реализации автоматически, если не переданы явно.
 
-## Команда `core-init`
+## CLI-команды
 
-Создаёт структуру и примеры.
+### `core-init`
+
+Инициализирует проект: создаёт структуру папок, шаблоны, примеры и конфигурацию.
 
 ```bash
 core-init [--force] [--target-dir core_project]
@@ -223,6 +236,24 @@ core-init [--force] [--target-dir core_project]
   - `example_scenario.py` — шаблон сценария.
   - `README.md` — пояснение к примерам.
 - `pyproject.toml`, `README.md` — если отсутствуют.
+
+### `core-upgrade`
+
+Обновляет пакет до последней версии из GitHub.
+
+```bash
+core-upgrade
+```
+
+Что делает:
+
+1. Загружает `pyproject.toml` из `main`-ветки репозитория.
+2. Сравнивает удалённую версию с текущей (попарное сравнение кортежей).
+3. Если удалённая версия новее — проверяет совместимость с вашей версией Python.
+4. При несовместимости — задаёт вопрос yes/no перед продолжением.
+5. Выполняет `pip install --upgrade git+https://github.com/senia-glitch/core-package.git`.
+
+**Ключевой принцип:** пакет обновляется только в `site-packages`. Пользовательский код (app/, .env, pyproject.toml, роуты, схемы) остаётся нетронутым.
 
 ## Архитектура и компоненты
 
@@ -252,13 +283,28 @@ class MyScenario(BaseScenario):
 
 ```python
 from core import BaseScenario, register_scenario, tracked_scenario
+from pydantic import BaseModel
 
-@register_scenario("hello")
+
+class HelloDTO(BaseModel):
+    name: str
+
+
+class HelloResponse(BaseModel):
+    message: str
+
+
+@register_scenario("hello", response=HelloResponse, dto=HelloDTO)
 @tracked_scenario("hello")
 class HelloScenario(BaseScenario):
     async def execute(self, dto):
-        return {"message": f"Hello, {dto.name}!"}
+        return HelloResponse(message=f"Hello, {dto.name}!")
 ```
+
+Параметры декоратора `@register_scenario`:
+- `name` — уникальное имя сценария (обязательно)
+- `response` — Pydantic-модель ответа (опционально). Если указана — `run()` конвертирует результат `execute()` в эту модель
+- `dto` — Pydantic-модель входных данных (опционально). Если указана — `run()` проверяет тип DTO перед вызовом `execute()`
 
 Декоратор срабатывает в момент импорта модуля. Чтобы модуль импортировался при старте приложения, используйте `discover`:
 
@@ -272,7 +318,45 @@ await start_core(db=db, discover="app.scenarios")
 
 ```python
 from core import ScenarioRegistry
-ScenarioRegistry.register("hello", HelloScenario)
+ScenarioRegistry.register("hello", HelloScenario, response=HelloResponse, dto=HelloDTO)
+```
+
+### Метаданные сценариев
+
+После регистрации через `ScenarioRegistry` можно получить метаданные сценария:
+
+```python
+from core import ScenarioRegistry
+
+entry = ScenarioRegistry.get_entry("hello")
+entry.scenario_cls  # класс сценария
+entry.response      # Response-модель (или None)
+entry.dto           # DTO-модель (или None)
+
+# Или по отдельности:
+ScenarioRegistry.get_response("hello")  # -> HelloResponse или None
+ScenarioRegistry.get_dto("hello")       # -> HelloDTO или None
+```
+
+### Валидация в `run()`
+
+Если при регистрации указан `dto`, функция `run()` проверяет тип перед вызовом `execute()`:
+
+```python
+await run("hello", HelloDTO(name="Alice"))   # OK
+await run("hello", {"name": "Alice"})         # ValueError: ожидался DTO HelloDTO, получен dict
+```
+
+Если при регистрации указан `response`, `run()` гарантирует, что результат будет инстансом этой модели:
+
+```python
+# execute() вернул dict:
+return {"message": "Hello!"}
+# run() автоматически создаст HelloResponse(message="Hello!")
+
+# execute() вернул другую Pydantic-модель:
+return OtherModel(message="Hello!")
+# run() сконвертирует через model_dump() → HelloResponse
 ```
 
 ### Исключения
@@ -338,7 +422,7 @@ value = await cache.get("key")
 
 | Переменная | Описание | По умолчанию |
 |---|---|---|
-| `CORE_JWT_SECRET` | Секрет для JWT | `change-me-in-production` |
+| `CORE_JWT_SECRET` | Секрет для JWT. **Обязательно измените!** При дефолтном значении пакет выводит предупреждение. | `change-me-in-production` |
 | `CORE_ACCESS_TOKEN_MINUTES` | Время жизни access-токена (мин) | `15` |
 | `CORE_REFRESH_TOKEN_DAYS` | Время жизни refresh-токена (дни) | `30` |
 | `CORE_BCRYPT_ROUNDS` | Раунды bcrypt | `12` |

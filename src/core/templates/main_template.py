@@ -85,7 +85,7 @@ class GreetingResponse(BaseModel):
     greeting: str
 
 
-@register_scenario("greeting")
+@register_scenario("greeting", response=GreetingResponse, dto=GreetingDTO)
 class GreetingScenario(BaseScenario):
     """Пример сценария: приветствие пользователя."""
 

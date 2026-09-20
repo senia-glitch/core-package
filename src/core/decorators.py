@@ -3,7 +3,7 @@
 import functools
 import logging
 import time
-from typing import Any, Awaitable, Callable, Type, TypeVar
+from typing import Any, Awaitable, Callable, Optional, Type, TypeVar
 
 from .metrics import get_metrics
 
@@ -76,7 +76,12 @@ def tracked_scenario(name: str):
     return decorator
 
 
-def register_scenario(name: str):
+def register_scenario(
+    name: str,
+    *,
+    response: Optional[Type] = None,
+    dto: Optional[Type] = None,
+):
     """Декоратор класса — регистрирует сценарий в ScenarioRegistry.
 
     Срабатывает в момент импорта модуля, в котором объявлен класс.
@@ -86,11 +91,18 @@ def register_scenario(name: str):
     Импорт ScenarioRegistry делается внутри функции, чтобы избежать
     проблем с порядком инициализации пакета.
 
+    Args:
+        name: Уникальное имя сценария.
+        response: Модель ответа (Pydantic BaseModel). Если передана —
+            run() гарантирует, что результат будет инстансом этой модели.
+        dto: Модель входных данных (Pydantic BaseModel). Если передана —
+            run() будет валидировать входной объект.
+
     Пример::
 
         from core import BaseScenario, register_scenario
 
-        @register_scenario("hello")
+        @register_scenario("hello", response=HelloResponse, dto=HelloDTO)
         class HelloScenario(BaseScenario):
             async def execute(self, dto): ...
     """
@@ -98,7 +110,7 @@ def register_scenario(name: str):
     def decorator(cls: C) -> C:
         from .scenario_registry import ScenarioRegistry
 
-        ScenarioRegistry.register(name, cls)
+        ScenarioRegistry.register(name, cls, response=response, dto=dto)
         return cls
 
     return decorator
